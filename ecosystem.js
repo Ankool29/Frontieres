@@ -14,11 +14,11 @@
       const row = [];
       for (let x = 0; x < w; x++) {
         const nx = x / Math.max(1, w - 1), ny = y / Math.max(1, h - 1);
-        const broad = Math.sin(nx * 5.1 + seed * .013) * .13 + Math.cos(ny * 4.2 - seed * .009) * .12;
-        const detail = (hash(x, y, seed) - .5) * .22 + (hash(x * 2, y * 2, seed + 17) - .5) * .08;
-        const elevation = clamp(.48 + broad + detail + Math.sin((nx + ny) * 7) * .08, 0, 1);
-        const moisture = clamp(.48 + Math.sin(nx * 7 + seed * .02) * .19 + Math.cos(ny * 6 - seed * .01) * .16 + (hash(x, y, seed + 31) - .5) * .2, 0, 1);
-        const temperature = clamp(.78 - Math.abs(ny - .5) * 1.15 - elevation * .22 + Math.sin(nx * 3 + seed) * .06, 0, 1);
+        const continent = Math.sin(nx * 8.4 + seed * .013) * .19 + Math.cos(ny * 7.2 - seed * .009) * .17 + Math.sin((nx + ny) * 12.5) * .09;
+        const detail = (hash(x, y, seed) - .5) * .17 + (hash(x * 2, y * 2, seed + 17) - .5) * .07;
+        const elevation = clamp(.49 + continent + detail, 0, 1);
+        const moisture = clamp(.49 + Math.sin(nx * 13 + seed * .02) * .25 + Math.cos(ny * 11 - seed * .01) * .22 + (hash(x, y, seed + 31) - .5) * .18, 0, 1);
+        const temperature = clamp(.86 - Math.abs(ny - .5) * 1.5 - elevation * .3 + Math.sin(nx * 5 + seed) * .09, 0, 1);
         const biome = elevation < .22 ? "Littoral" : elevation > .82 ? "Montagnes" : temperature < .23 ? "Toundra" :
           moisture > .78 && elevation < .48 ? "Marécage" : temperature > .68 && moisture < .28 ? "Désert" :
           temperature < .42 && moisture > .48 ? "Taïga" : moisture > .57 ? "Forêt tempérée" :

@@ -41,8 +41,8 @@
       for(let x=0;x<w;x++){
         const e=elevation[y][x],m=moisture[y][x],latitude=Math.abs(y/(h-1)-.5)*2;
         const temp=clamp(.98-latitude*.78-e*.34,0,1);
-        const biome=e<.205?"Océan":e>.64?"Montagnes":temp<.22?"Toundra":m>.79&&e<.48?"Marécage":temp>.70&&m<.28?"Désert":temp<.4&&m>.46?"Taïga":m>.59?"Forêt tempérée":temp>.59?"Savane":"Prairie";
-        let t=e<.205?"water":e>.64?"rock":biome==="Désert"?"sand":["Forêt tempérée","Taïga","Marécage"].includes(biome)?"forest":"grass";
+        const biome=e<.205?"Océan":e>.60?"Montagnes":temp<.22?"Toundra":m>.79&&e<.48?"Marécage":temp>.70&&m<.28?"Désert":temp<.4&&m>.46?"Taïga":m>.59?"Forêt tempérée":temp>.59?"Savane":"Prairie";
+        let t=e<.205?"water":e>.60?"rock":biome==="Désert"?"sand":["Forêt tempérée","Taïga","Marécage"].includes(biome)?"forest":"grass";
         row.push({t,b:null,biome,elevation:+e.toFixed(3),moisture:+m.toFixed(3),temperature:+temp.toFixed(3),
           vegetation:t==="forest"?65+Math.round(m*30):t==="grass"?20+Math.round(m*38):t==="sand"?3:0,
           trees:t==="forest"?5+Math.floor(hash(x,y,seed+9)*8):0,

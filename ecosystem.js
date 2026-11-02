@@ -8,40 +8,92 @@
     const d = ((day - 1) % 48 + 48) % 48;
     return { name: seasons[Math.floor(d / 12)], year: Math.floor((day - 1) / 48) + 1 };
   }
+  // Bruit interpolé : les grandes formes du relief sont continues, contrairement à un tirage case par case.
+  function smoothNoise(x, y, scale, seed) {
+    const gx = x / scale, gy = y / scale, ix = Math.floor(gx), iy = Math.floor(gy);
+    const fx = gx - ix, fy = gy - iy;
+    const fade = t => t * t * (3 - 2 * t);
+    const a = hash(ix, iy, seed), b = hash(ix + 1, iy, seed);
+    const c = hash(ix, iy + 1, seed), d = hash(ix + 1, iy + 1, seed);
+    const u = fade(fx), v = fade(fy);
+    return (a * (1-u) + b*u) * (1-v) + (c * (1-u) + d*u) * v;
+  }
   function generate(w, h, seed) {
-    const map = [];
+    const map = [], elevationGrid = Array.from({length:h}, () => Array(w).fill(0));
+    // Première passe : continents, bassins et relief à plusieurs échelles.
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const continental = smoothNoise(x, y, 25, seed + 3) * .62 + smoothNoise(x, y, 12, seed + 7) * .25 + smoothNoise(x, y, 5, seed + 11) * .13;
+      const ridgeNoise = smoothNoise(x + 37, y - 19, 10, seed + 23);
+      const ridge = 1 - Math.abs(ridgeNoise * 2 - 1);
+      elevationGrid[y][x] = clamp(.02 + continental * .95 + Math.pow(ridge, 3) * .22 - .30, 0, 1);
+    }
+    // Lissage local : les pentes et les vallées forment des ensembles continus.
+    const raw = elevationGrid.map(row => row.slice());
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      let sum = raw[y][x] * 4;
+      for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++) if(dx||dy) sum += raw[y+dy][x+dx];
+      elevationGrid[y][x] = sum / 12;
+    }
+    const moistureGrid = Array.from({length:h}, (_,y) => Array.from({length:w}, (_,x) =>
+      clamp(.12 + smoothNoise(x+81,y-27,18,seed+31)*.52 + smoothNoise(x,y,7,seed+37)*.28,0,1)));
     for (let y = 0; y < h; y++) {
       const row = [];
       for (let x = 0; x < w; x++) {
-        const nx = x / Math.max(1, w - 1), ny = y / Math.max(1, h - 1);
-        const continent = Math.sin(nx * 8.4 + seed * .013) * .19 + Math.cos(ny * 7.2 - seed * .009) * .17 + Math.sin((nx + ny) * 12.5) * .09;
-        const detail = (hash(x, y, seed) - .5) * .17 + (hash(x * 2, y * 2, seed + 17) - .5) * .07;
-        const elevation = clamp(.49 + continent + detail, 0, 1);
-        const moisture = clamp(.49 + Math.sin(nx * 13 + seed * .02) * .25 + Math.cos(ny * 11 - seed * .01) * .22 + (hash(x, y, seed + 31) - .5) * .18, 0, 1);
-        const temperature = clamp(.86 - Math.abs(ny - .5) * 1.5 - elevation * .3 + Math.sin(nx * 5 + seed) * .09, 0, 1);
-        const biome = elevation < .22 ? "Littoral" : elevation > .82 ? "Montagnes" : temperature < .23 ? "Toundra" :
-          moisture > .78 && elevation < .48 ? "Marécage" : temperature > .68 && moisture < .28 ? "Désert" :
-          temperature < .42 && moisture > .48 ? "Taïga" : moisture > .57 ? "Forêt tempérée" :
-          temperature > .58 ? "Savane" : "Prairie";
-        let t = elevation < .22 ? "water" : elevation > .82 ? "rock" : biome === "Désert" ? "sand" :
-          ["Forêt tempérée", "Taïga", "Marécage"].includes(biome) ? "forest" : "grass";
-        if (t !== "water" && hash(x, y, seed + 67) < .012) t = "ruin";
-        const vegetation = t === "forest" ? 68 + Math.round(hash(x, y, seed + 4) * 28) :
-          t === "grass" ? 25 + Math.round(moisture * 35) : t === "sand" ? 4 : 0;
-        row.push({ t, b: null, biome, elevation: +elevation.toFixed(3), moisture: +moisture.toFixed(3),
-          temperature: +temperature.toFixed(3), vegetation, trees: t === "forest" ? 5 + Math.floor(hash(x, y, seed + 9) * 8) : 0,
-          fauna: ["Forêt tempérée", "Taïga", "Prairie", "Savane"].includes(biome) ? 1 + Math.floor(hash(x, y, seed + 13) * 4) : 0,
-          explored: false, soil: moisture > .65 ? "riche" : moisture < .25 ? "pauvre" : "ordinaire" });
+        const elevation = elevationGrid[y][x], moisture = moistureGrid[y][x];
+        const latitude = Math.abs((y / Math.max(1,h-1)) - .5) * 2;
+        const temperature = clamp(.94 - latitude * .72 - elevation * .36 + (smoothNoise(x,y,22,seed+43)-.5)*.12,0,1);
+        const biome = elevation < .205 ? "Océan" : elevation > .79 ? "Montagnes" :
+          temperature < .22 ? "Toundra" : moisture > .78 && elevation < .48 ? "Marécage" :
+          temperature > .69 && moisture < .27 ? "Désert" : temperature < .4 && moisture > .46 ? "Taïga" :
+          moisture > .59 ? "Forêt tempérée" : temperature > .59 ? "Savane" : "Prairie";
+        let t = elevation < .205 ? "water" : elevation > .79 ? "rock" : biome === "Désert" ? "sand" :
+          ["Forêt tempérée","Taïga","Marécage"].includes(biome) ? "forest" : "grass";
+        const vegetation = t === "forest" ? 65 + Math.round(moisture*30) : t === "grass" ? 20 + Math.round(moisture*38) : t === "sand" ? 3 : 0;
+        row.push({t,b:null,biome,elevation:+elevation.toFixed(3),moisture:+moisture.toFixed(3),
+          temperature:+temperature.toFixed(3),vegetation,trees:t==="forest"?5+Math.floor(hash(x,y,seed+9)*8):0,
+          fauna:["Forêt tempérée","Taïga","Prairie","Savane"].includes(biome)?1+Math.floor(hash(x,y,seed+13)*4):0,
+          explored:false,soil:moisture>.65?"riche":moisture<.25?"pauvre":"ordinaire",
+          waterway:false,waterKind:t==="water"?"ocean":null,flow:0,downstream:null});
       }
       map.push(row);
     }
+    // Drainage : chaque case terrestre s'écoule vers son voisin le plus bas.
+    const ordered=[];
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+      const c=map[y][x]; if(c.t==="water")continue;
+      let low=c.elevation, target=null;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        if(!dx&&!dy)continue;const nx=x+dx,ny=y+dy,n=map[ny][nx];
+        if(n.elevation<low){low=n.elevation;target={x:nx,y:ny};}
+      }
+      c.downstream=target; c.flow=1; ordered.push({x,y,e:c.elevation});
+    }
+    ordered.sort((a,b)=>b.e-a.e);
+    for(const p of ordered){const c=map[p.y][p.x];if(c.downstream){const d=map[c.downstream.y][c.downstream.x];d.flow+=c.flow;}}
+    // Cours d'eau : les accumulations importantes dessinent des réseaux qui convergent vers la mer.
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+      const c=map[y][x];
+      if(c.t!=="water"&&c.flow>=7){c.waterway=true;c.biome="Littoral";c.moisture=clamp(c.moisture+.16,0,1);}
+    }
+    // Petits lacs intérieurs dans les cuvettes fermées, sans transformer les plaines en mares isolées.
+    for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){
+      const c=map[y][x];if(c.t==="water"||c.elevation>.43||c.flow>3)continue;
+      let lower=false,landNeighbours=0;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(dx||dy){
+        const n=map[y+dy][x+dx];if(n.t!=="water")landNeighbours++;
+        if(n.elevation<c.elevation-.025)lower=true;
+      }
+      if(!lower&&landNeighbours>=18&&hash(x,y,seed+97)>.91){c.t="water";c.waterKind="lake";c.biome="Lac";c.vegetation=0;c.trees=0;}
+    }
+    // Ruines rares, posées sur la terre ferme uniquement.
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=map[y][x];if(c.t!=="water"&&!c.waterway&&hash(x,y,seed+67)<.006)c.t="ruin";}
     return map;
   }
   function migrate(map, seed) {
     const generated = generate(map[0].length, map.length, seed || 1);
     map.forEach((row, y) => row.forEach((c, x) => {
       const g = generated[y][x];
-      ["biome", "elevation", "moisture", "temperature", "vegetation", "trees", "fauna", "soil"].forEach(k => { if (c[k] === undefined) c[k] = g[k]; });
+      ["biome", "elevation", "moisture", "temperature", "vegetation", "trees", "fauna", "soil", "waterway", "waterKind", "flow", "downstream"].forEach(k => { if (c[k] === undefined) c[k] = g[k]; });
       if (c.t === "forest" && c.trees === 0) c.trees = 5;
       c.explored = c.explored || false;
     }));

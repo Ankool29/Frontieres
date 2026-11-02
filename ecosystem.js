@@ -40,14 +40,14 @@
       const row=[];
       for(let x=0;x<w;x++){
         const e=elevation[y][x],m=moisture[y][x],latitude=Math.abs(y/(h-1)-.5)*2;
-        const temp=clamp(.98-latitude*.78-e*.34,0,1);
-        const biome=e<.205?"Océan":e>.60?"Montagnes":temp<.22?"Toundra":m>.79&&e<.48?"Marécage":temp>.70&&m<.28?"Désert":temp<.4&&m>.46?"Taïga":m>.59?"Forêt tempérée":temp>.59?"Savane":"Prairie";
-        let t=e<.205?"water":e>.60?"rock":biome==="Désert"?"sand":["Forêt tempérée","Taïga","Marécage"].includes(biome)?"forest":"grass";
+        const temp=clamp(.98-latitude*.78-e*.34,0,1),geo=noise3(sx+.6,sy-.4,sz+.2,.24,seed+77),mineralRoll=hash(x,y,seed+79);
+        const biome=e<.205?"Océan":e>.50?"Montagnes":temp<.22?"Toundra":m>.79&&e<.48?"Marécage":temp>.70&&m<.28?"Désert":temp<.4&&m>.46?"Taïga":m>.59?"Forêt tempérée":temp>.59?"Savane":"Prairie";
+        let t=e<.205?"water":e>.50?"rock":biome==="Désert"?"sand":["Forêt tempérée","Taïga","Marécage"].includes(biome)?"forest":"grass";
         row.push({t,b:null,biome,elevation:+e.toFixed(3),moisture:+m.toFixed(3),temperature:+temp.toFixed(3),
           vegetation:t==="forest"?65+Math.round(m*30):t==="grass"?20+Math.round(m*38):t==="sand"?3:0,
           trees:t==="forest"?5+Math.floor(hash(x,y,seed+9)*8):0,
           fauna:["Forêt tempérée","Taïga","Prairie","Savane"].includes(biome)?1+Math.floor(hash(x,y,seed+13)*4):0,
-          explored:false,soil:m>.65?"riche":m<.25?"pauvre":"ordinaire",waterway:false,
+          explored:false,soil:m>.72?"tourbeux":m>.62?"fertile":e>.50?"rocheux":m<.22?"sableux":"ordinaire",geology:e>.50?(geo>.66?"granite":geo>.33?"basalte":"métamorphique"):(geo>.55?"calcaire":geo>.28?"grès":"sédimentaire"),mineral:mineralRoll>.91?(geo>.5?"fer": "cuivre"):mineralRoll>.84?"charbon":null,mineralAmount:mineralRoll>.84?1+Math.floor(hash(x,y,seed+83)*5):0,floodplain:false,waterway:false,
           waterKind:t==="water"?"ocean":null,flow:0,downstream:null});
       }
       map.push(row);
@@ -67,7 +67,16 @@
     for(const p of ordered){const c=map[p.y][p.x];if(c.downstream){const d=map[c.downstream.y][c.downstream.x];d.flow+=c.flow;}}
     for(let y=1;y<h-1;y++)for(let x=0;x<w;x++){
       const c=map[y][x];
-      if(c.t!=="water"&&c.flow>=12){c.waterway=true;c.biome="Littoral";c.moisture=clamp(c.moisture+.16,0,1);}
+      if(c.t!=="water"&&c.flow>=12){c.waterway=true;c.waterKind="river";c.t="water";c.biome="Littoral";c.moisture=clamp(c.moisture+.16,0,1);}
+    }
+    // Les terrains voisins des rivières deviennent des plaines alluviales fertiles.
+    for(let y=1;y<h-1;y++)for(let x=0;x<w;x++){
+      const c=map[y][x];if(c.t==="water")continue;
+      let beside=false;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dx||dy){
+        const n=map[y+dy][(x+dx+w)%w];if(n.waterway)beside=true;
+      }
+      if(beside){c.floodplain=true;c.soil="alluvial";c.moisture=clamp(c.moisture+.12,0,1);}
     }
     // Lacs endoréiques dans certaines cuvettes fermées.
     for(let y=2;y<h-2;y++)for(let x=0;x<w;x++){
@@ -86,7 +95,7 @@
     const generated = generate(map[0].length, map.length, seed || 1);
     map.forEach((row, y) => row.forEach((c, x) => {
       const g = generated[y][x];
-      ["biome", "elevation", "moisture", "temperature", "vegetation", "trees", "fauna", "soil", "waterway", "waterKind", "flow", "downstream"].forEach(k => { if (c[k] === undefined) c[k] = g[k]; });
+      ["biome", "elevation", "moisture", "temperature", "vegetation", "trees", "fauna", "soil", "waterway", "waterKind", "flow", "downstream", "geology", "mineral", "mineralAmount", "floodplain"].forEach(k => { if (c[k] === undefined) c[k] = g[k]; });
       if (c.t === "forest" && c.trees === 0) c.trees = 5;
       c.explored = c.explored || false;
     }));

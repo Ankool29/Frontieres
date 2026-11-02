@@ -25,7 +25,7 @@
       const continental = smoothNoise(x, y, 25, seed + 3) * .62 + smoothNoise(x, y, 12, seed + 7) * .25 + smoothNoise(x, y, 5, seed + 11) * .13;
       const ridgeNoise = smoothNoise(x + 37, y - 19, 10, seed + 23);
       const ridge = 1 - Math.abs(ridgeNoise * 2 - 1);
-      elevationGrid[y][x] = clamp(.08 + continental * .82 + Math.pow(ridge, 3) * .12 - .34, 0, 1);
+      elevationGrid[y][x] = clamp(.02 + continental * .95 + Math.pow(ridge, 3) * .22 - .30, 0, 1);
     }
     // Lissage local : les pentes et les vallées forment des ensembles continus.
     const raw = elevationGrid.map(row => row.slice());
@@ -93,7 +93,7 @@
     const generated = generate(map[0].length, map.length, seed || 1);
     map.forEach((row, y) => row.forEach((c, x) => {
       const g = generated[y][x];
-      ["biome", "elevation", "moisture", "temperature", "vegetation", "trees", "fauna", "soil"].forEach(k => { if (c[k] === undefined) c[k] = g[k]; });
+      ["biome", "elevation", "moisture", "temperature", "vegetation", "trees", "fauna", "soil", "waterway", "waterKind", "flow", "downstream"].forEach(k => { if (c[k] === undefined) c[k] = g[k]; });
       if (c.t === "forest" && c.trees === 0) c.trees = 5;
       c.explored = c.explored || false;
     }));

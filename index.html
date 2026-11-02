@@ -26,7 +26,8 @@ button{background:var(--p2);border:1px solid #405447;border-radius:2px;color:var
 .tile.animal-herbivore{color:#e1c47c!important;text-shadow:0 0 5px #d5b66b;animation:animal-step 1.1s ease-in-out infinite,animal-wander 3.2s ease-in-out infinite}
 .tile.animal-predator{color:#e28c75!important;text-shadow:0 0 6px #d85c48;animation:animal-step 1.7s ease-in-out infinite,predator-prowl 2.8s ease-in-out infinite}
 @keyframes animal-step{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.12)}}
-@keyframes animal-wander{0%,100%{translate:-2px 0}50%{translate:2px -1px}}\n@keyframes predator-prowl{0%,100%{transform:translateX(-1px)}50%{transform:translateX(1px) scale(1.1)}}
+@keyframes animal-wander{0%,100%{translate:-2px 0}50%{translate:2px -1px}}
+@keyframes predator-prowl{0%,100%{transform:translateX(-1px)}50%{transform:translateX(1px) scale(1.1)}}
 .player{animation:player-pulse 2s ease-in-out infinite!important}
 @keyframes player-pulse{0%,100%{box-shadow:0 0 0 0 #e2c17b22}50%{box-shadow:0 0 9px 2px #e2c17b66}}
 .worldwrap.rain::after,.worldwrap.storm::after,.worldwrap.snow::after,.worldwrap.fog::after{content:"";position:absolute;inset:-35%;z-index:2;pointer-events:none;opacity:.55}

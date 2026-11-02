@@ -162,7 +162,7 @@
         for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dx||dy){
           const ny=y+dy,nx=wrap(x+dx);if(ny<0||ny>=h)continue;
           const n=map[ny][nx];if(n.t==="water"||n.t==="rock"||n.t==="ruin")continue;
-          const score=(kind==="fauna"?n.vegetation*.65+n.moisture*18+n.fauna*2:n.fauna*12+n.biome==="Forêt tempérée"?4:0)+hash(nx,ny,seed+day+43);
+          const score=(kind==="fauna"?n.vegetation*.65+n.moisture*18+n.fauna*2:n.fauna*12+(n.biome==="Forêt tempérée"?4:0))+hash(nx,ny,seed+day+43);
           if(score>bestScore){bestScore=score;best={x:nx,y:ny};}
         }
         if(best){moves[y][x][kind]--;moves[best.y][best.x][kind]++;}

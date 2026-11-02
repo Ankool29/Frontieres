@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#142019"><title>FRONTIÈRES — APERÇU CODEX</title><script src="./ecosystem.js?v=20261102-ecology08"></script>
+<style>
+:root{color-scheme:dark;--bg:#090d0b;--p:#101713;--p2:#18221b;--line:#34453a;--txt:#c8d4c9;--muted:#849487;--gold:#e2c17b;--green:#9dbb8d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:13px ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+.app{max-width:760px;margin:auto;padding:10px;display:grid;gap:8px}.head,.line{display:flex;justify-content:space-between;align-items:center;gap:8px}.brand{font-weight:900;letter-spacing:3px;font-size:20px;color:#d8e1d7}
+.sub,.muted,small{color:var(--muted);font-size:11px}.panel,.stat{background:var(--p);border:1px solid var(--line);border-radius:2px;padding:9px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.stat{text-align:center;padding:7px 2px}.stat b{display:block;font-size:17px;color:#d6dfd4}.stat span{font-size:10px;color:var(--muted)}
+button{background:var(--p2);border:1px solid #405447;border-radius:2px;color:var(--txt);padding:8px;font:600 12px ui-monospace,SFMono-Regular,Consolas,monospace;touch-action:manipulation}button:active{background:#293a2e;color:#fff}button:disabled{opacity:.35}
+.map-toggle{width:100%;min-height:39px;margin:5px 0;background:#17251b;border:1px solid #6b886e;color:#c6dfc5;font-size:12px;font-weight:800;letter-spacing:1px}
+.worldwrap{overflow:auto;max-height:58dvh;min-height:260px;background:#050806;border:1px solid #26372c;border-radius:2px}.world{display:grid;grid-template-columns:repeat(15,18px);gap:0;width:max-content;padding:5px;margin:auto}.world.planet{grid-template-columns:repeat(48,minmax(0,1fr));width:100%}.world.continent{grid-template-columns:repeat(24,15px)}.world.local{grid-template-columns:repeat(15,20px)}
+.tile{display:flex;align-items:center;justify-content:center;width:18px;height:21px;padding:0;border:0;border-radius:0;background:transparent;font-size:15px;line-height:1;font-weight:700}.planet .tile{width:auto;height:9px;font-size:8px}.continent .tile{width:15px;height:17px;font-size:12px}.local .tile{width:20px;height:22px;font-size:16px}.tile:active{background:#354438}
+.biome-prairie{color:#a8bd8c}.biome-savane{color:#c5ae70}.biome-desert{color:#d1ad70}.biome-foret-temperee{color:#6fa878}.biome-taiga{color:#83aaa0}.biome-marecage{color:#8fae91}.biome-toundra{color:#c0d0c8}.biome-montagnes{color:#aeb5bb}.biome-littoral{color:#77b7c5}.biome-ocean{color:#5e9eb9}.biome-lac{color:#70b8d0}.biome-ruines{color:#c09ac2}
+.player{color:#f0d28d!important;background:#343022!important;outline:1px solid #b89b5e;z-index:1}
+/* Vie visuelle : animations discrètes, sans surcharge du rendu ASCII */
+.worldwrap{position:relative;isolation:isolate;transition:background-color 1.4s ease,filter 1.4s ease}
+/* Animations perceptibles même à l'échelle planétaire */
+.world.planet .tile{animation:planet-life 1.55s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+.world.planet .biome-ocean,.world.planet .biome-lac,.world.planet .biome-littoral{animation:planet-water 1.25s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+@keyframes planet-life{from{filter:brightness(.82)}to{filter:brightness(1.22)}}
+@keyframes planet-water{from{filter:brightness(.72);text-shadow:none}to{filter:brightness(1.5);text-shadow:0 0 4px currentColor}}
+/* Les animaux gardent leur animation au-dessus des règles générales des cases */
+.world:not(.planet) .tile.animal-herbivore{animation:animal-step 1.1s ease-in-out infinite,animal-wander 1.5s ease-in-out infinite}
+.world:not(.planet) .tile.animal-predator{animation:animal-step 1.25s ease-in-out infinite,predator-prowl 1.6s ease-in-out infinite}
+.world{position:relative;z-index:1}
+.world:not(.planet) .tile{position:relative;transform-origin:50% 85%;animation:tile-enter .42s both;animation-delay:var(--phase,0s);transition:color .5s ease,filter .5s ease}
+@keyframes tile-enter{from{opacity:.55}to{opacity:1}}
+.world:not(.planet) .biome-foret-temperee,.world:not(.planet) .biome-taiga{animation:tree-sway 3.8s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+@keyframes tree-sway{0%{transform:rotate(-2deg) translateY(0)}100%{transform:rotate(2deg) translateY(-1px)}}
+.world:not(.planet) .biome-ocean,.world:not(.planet) .biome-lac,.world:not(.planet) .biome-littoral{animation:water-glint 2.7s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+@keyframes water-glint{from{filter:brightness(.88);text-shadow:0 0 0 transparent}to{filter:brightness(1.3);text-shadow:0 0 5px currentColor}}
+.world:not(.planet) .biome-prairie,.world:not(.planet) .biome-savane{animation:grass-wave 4.5s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+@keyframes grass-wave{from{transform:translateY(0)}to{transform:translateY(-1px)}}
+.tile.animal-herbivore{color:#e1c47c!important;text-shadow:0 0 5px #d5b66b;animation:animal-step 1.1s ease-in-out infinite,animal-wander 3.2s ease-in-out infinite}
+.tile.animal-predator{color:#e28c75!important;text-shadow:0 0 6px #d85c48;animation:animal-step 1.7s ease-in-out infinite,predator-prowl 2.8s ease-in-out infinite}
+@keyframes animal-step{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.12)}}
+@keyframes animal-wander{0%,100%{translate:-2px 0}50%{translate:2px -1px}}
+@keyframes predator-prowl{0%,100%{transform:translateX(-1px)}50%{transform:translateX(1px) scale(1.1)}}
+.player{animation:player-pulse 2s ease-in-out infinite!important}
+@keyframes player-pulse{0%,100%{box-shadow:0 0 0 0 #e2c17b22}50%{box-shadow:0 0 9px 2px #e2c17b66}}
+.worldwrap.rain::after,.worldwrap.storm::after,.worldwrap.snow::after,.worldwrap.fog::after{content:"";position:absolute;inset:-35%;z-index:2;pointer-events:none;opacity:.55}
+.worldwrap.rain::after,.worldwrap.storm::after{background:repeating-linear-gradient(108deg,transparent 0 12px,#a9c9d955 13px,#a9c9d955 14px,transparent 15px 25px);animation:rain-fall .42s linear infinite}
+.worldwrap.storm::after{opacity:.8;animation-duration:.25s}
+@keyframes rain-fall{from{transform:translate3d(-5%, -8%,0)}to{transform:translate3d(5%, 8%,0)}}
+.worldwrap.snow::after{background-image:radial-gradient(circle,#e8f0f0 1px,transparent 2px),radial-gradient(circle,#dce8e8 1.5px,transparent 2.5px);background-size:29px 37px,53px 61px;background-position:0 0,18px 20px;animation:snow-drift 5s linear infinite;opacity:.65}
+@keyframes snow-drift{from{transform:translateY(-8%) translateX(-1%)}to{transform:translateY(8%) translateX(3%)}}
+.worldwrap.fog::after{background:linear-gradient(110deg,transparent,#c2d0c022 35%,#dce5df55 52%,transparent 75%);background-size:220% 100%;animation:fog-drift 9s ease-in-out infinite alternate;opacity:.75}
+@keyframes fog-drift{from{background-position:0 0}to{background-position:100% 0}}
+.worldwrap.night{background:#030812}
+.worldwrap.night .tile{filter:brightness(.67) saturate(.82)}
+.worldwrap.night .tile.player{filter:brightness(1.15);box-shadow:0 0 8px #f0d28d66}
+.worldwrap.dawn{background:#17131b}
+.worldwrap.dusk{background:#1c1110}
+@media(prefers-reduced-motion:reduce){.tile,.worldwrap::after{animation:none!important;transition:none!important}}
+
+.scale-note{font-size:10px;text-align:center;line-height:1.5;margin-top:4px;color:#9aa99a}.territory-panel{margin-top:8px;padding:8px;border:1px solid #34453a;background:#0b120e}.detail-grid{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));justify-content:center;gap:1px;margin:8px auto}.detail-tile{display:flex;align-items:center;justify-content:center;width:100%;height:23px;background:#142019;border:1px solid #2c3c31;font-size:12px;font-weight:800}.detail-tile.forest{color:#75b781}.detail-tile.rock{color:#aeb5bb}.detail-tile.water{color:#70b8d0}.detail-tile.fauna{color:#e1c47c}.detail-tile.predator{color:#e28c75}.detail-tile.plant{color:#a8bd8c}.detail-tile.unexplored{color:#4c6154;background:#0b110e}.detail-tile.sub-player{color:#f0d28d!important;background:#343022!important;outline:2px solid #b89b5e;font-size:17px;box-shadow:0 0 10px #b89b5e88}.detail-legend{font-size:10px;line-height:1.5;text-align:center}.zoombar{display:flex;align-items:center;gap:5px}.zoombar button{min-width:34px;padding:5px;font-size:17px}.zoombar b{font-size:10px;color:var(--gold);min-width:76px;text-align:center}.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:170px;margin:8px auto 0}.controls button{font-size:13px;min-height:34px}
+.actions,.builds{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.builds{grid-template-columns:repeat(2,1fr);margin-top:7px}.actions button,.builds button{min-height:42px}
+.bar{height:5px;background:#080c09;border:1px solid #2b3a30;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--green)}
+.log{height:90px;overflow:auto;font-size:11px;color:var(--muted)}.log div{padding:3px;border-bottom:1px solid #202d24}.tag{color:var(--gold)}footer{display:flex;gap:5px}footer button{flex:1}
+@media(min-width:600px){.world.planet{grid-template-columns:repeat(48,minmax(0,1fr));width:100%}.planet .tile{height:15px;font-size:12px}.world.local{grid-template-columns:repeat(15,24px)}.local .tile{width:24px;height:25px;font-size:17px}.world.planet{grid-template-columns:repeat(48,14px)}.planet .tile{width:14px;height:16px;font-size:12px}}
+</style></head><body><main class="app">
+<header class="head"><div><div class="brand">FRONTIÈRES</div><div class="sub">LES MONDES OUBLIÉS · TEST DIRECT 0.7 · MIGRATIONS LOCALES</div></div><button id="pause">[ PAUSE ]</button></header>
+<section class="stats"><div class="stat"><b id="wood">0</b><span>BOIS</span></div><div class="stat"><b id="stone">0</b><span>PIERRE</span></div><div class="stat"><b id="ore">0</b><span>MINERAI</span></div><div class="stat"><b id="food">0</b><span>VIVRES</span></div></section>
+<section class="panel"><div class="line"><b>PLANÈTE · 144 × 72 TERRITOIRES</b><span class="muted" id="clock"></span></div><div class="line"><span class="muted" id="mapCoords">PLANÈTE · 144 × 72</span><div class="zoombar"><button id="zoomOut" aria-label="Dézoomer">−</button><b id="zoomLabel">PLANÈTE</b><button id="zoomIn" aria-label="Zoomer">+</button></div></div><button id="exploreBtn" class="map-toggle">[ EXPLORER LE TERRITOIRE ]</button><div class="worldwrap"><div class="world" id="world"></div></div><div id="territoryPanel" class="territory-panel" hidden><div class="line"><b>EXPLORATION · @ VOUS</b><span class="muted">15 × 15 sous-zones · exploration progressive</span></div><div class="line" style="margin-top:8px"><button id="ecoAdvance">[ SIMULER 30 JOURS ]</button><span id="ecoStatus" class="muted">Évolution locale : en attente</span></div><div id="ecoPop" class="muted" style="margin-top:6px">Plantes · Herbivores · Prédateurs</div><div id="detailGrid" class="detail-grid"></div><div id="detailSummary" class="muted"></div><div class="detail-legend muted">@ vous · T arbres · t arbustes · . herbe / clairière · ^ roche · ~ eau · ; roseaux · a herbivores · W prédateur</div></div><div class="muted scale-note">ÉCHELLE : 1 TERRITOIRE ≈ 250 × 250 KM À L’ÉQUATEUR · 15 × 15 SOUS-ZONES D’ENVIRON 17 KM</div><div class="controls"><i></i><button data-m="0,-1">▲</button><i></i><button data-m="-1,0">◀</button><button data-m="0,1">▼</button><button data-m="1,0">▶</button></div><div class="muted" style="text-align:center">Z Q S D / FLÈCHES : DÉPLACEMENT · @ VOUS</div><div class="muted" id="biomeLegend" style="text-align:center;margin-top:5px">Biomes simulés</div></section>
+<section class="panel"><div class="line"><b>ÉCOSYSTÈME</b><span class="muted" id="season">Printemps · Année 1</span></div><div class="line"><b id="weather">Dégagé</b><span id="temperature" class="muted">12 °C</span></div><div class="muted" id="climate">Climat local</div><div class="line" style="margin-top:7px"><span>Faune sauvage</span><b id="wildlife">—</b></div><div class="muted" id="ecoDetail">Populations simulées à l’échelle planétaire</div></section><section class="panel"><div class="line"><b id="where">Campement</b><span class="muted" id="xy"></span></div><p id="notice" class="muted">Récolte des ressources puis construis des bâtiments.</p><div class="actions"><button id="gather">[ RÉCOLTER ]</button><button id="inspect">[ OBSERVER ]</button><button id="build">[ CONSTRUIRE ]</button></div><div class="builds" id="builds" hidden><button data-b="hut">H - Abri <small>5🪵 3🪨</small></button><button data-b="farm">F - Ferme <small>6🪵 4🪨</small></button><button data-b="sawmill">S - Scierie <small>8🪵 4🪨</small></button><button data-b="mine">M - Mine <small>6🪵 6🪨</small></button></div></section>
+<section class="panel"><div class="line"><b>COLONIE</b><span id="population" class="muted"></span></div><div class="line"><span>Bien-être</span><b id="mood">80 %</b></div><div class="bar"><i id="moodbar"></i></div><div class="line" style="margin-top:9px"><span>Réserves alimentaires</span><b id="days">0 jours</b></div><div class="bar"><i id="foodbar"></i></div><div class="line" style="margin-top:10px"><b>Habitants et métiers</b><span class="muted">affectations automatiques</span></div><div id="workers" class="muted"></div></section>
+<section class="panel"><div class="line"><b>CHRONIQUE</b><span class="muted">Événements</span></div><div id="log" class="log"></div></section>
+<footer><button id="save">[ SAUVEGARDER ]</button><button id="reset">[ NOUVELLE PARTIE ]</button><button id="speed">Vitesse ×1</button></footer>
+</main><script>
+const W=144,H=72,VIEW=15,$=id=>document.getElementById(id), defs={hut:{n:"Abri",e:"🏠",w:5,s:3},farm:{n:"Ferme",e:"🌱",w:6,s:4},sawmill:{n:"Scierie",e:"🪚",w:8,s:4},mine:{n:"Mine",e:"⛏️",w:6,s:6}};
+let S,ecologyBusy=false,paused=false,speed=1,timer,mapZoom=0,mapCenterX=72,mapCenterY=36,subX=7,subY=7;
+function rng(n){let x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)}
+function fresh(){let seed=Math.floor(Math.random()*999999)+1,map=FrontieresEco.generate(W,H,seed),sx=Math.floor(W/2),sy=Math.floor(H/2),best=null,dist=Infinity;for(let y=0;y<H;y++)for(let x=0;x<W;x++){let c=map[y][x],d=Math.abs(x-sx)+Math.abs(y-sy);if(c.t!=="water"&&c.t!=="rock"&&d<dist){best={x,y};dist=d}}S={map,seed,x:best.x,y:best.y,wood:14,stone:10,ore:3,food:24,pop:4,mood:82,day:1,hour:8,log:[],jobs:{},buildings:[],eco:null};mapZoom=0;mapCenterX=best.x;mapCenterY=best.y;say("Jour 1 — Les survivants établissent un campement sur une planète inconnue.");render()}
+function say(t){S.log.unshift(t);S.log=S.log.slice(0,30);$("log").innerHTML=S.log.map(x=>"<div>"+x+"</div>").join("")}
+function cell(x=S.x,y=S.y){return S.map[y]?.[x]}
+function biomeClass(c){return "biome-"+(c.waterway?"littoral":c.waterKind==="lake"?"lac":c.t==="water"?"ocean":c.t==="ruin"?"ruines":(c.biome||"prairie").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ /g,"-"))}
+function glyph(c,isPlayer=false){if(isPlayer)return "@";if(mapZoom===2&&c.predators>0)return "W";if(mapZoom===2&&c.fauna>0)return c.fauna>=4?"A":"a";if(c.b)return ({hut:"H",farm:"F",sawmill:"S",mine:"M"})[c.b]||"+";if(c.waterway||c.t==="water")return "~";if(c.t==="rock")return "^";if(c.t==="ruin")return "%";if(c.t==="forest")return "T";if(c.biome==="Forêt tempérée"||c.biome==="Taïga")return c.trees>0?"T":".";if(c.biome==="Désert")return ":";if(c.biome==="Marécage")return ";";if(c.biome==="Toundra")return "*";if(c.biome==="Savane")return '"';if(c.biome==="Littoral")return ",";return "."}
+function subKey(){return S.x+","+S.y}
+function subData(){if(!S.subzones)S.subzones={};const key=subKey();if(!S.subzones[key])S.subzones[key]={};const data=S.subzones[key];if(!Array.isArray(data.base)||data.base.length!==225){if(data.base&&data.base.length===25){const old={...data};for(let i=0;i<25;i++)delete data[i];for(let i=0;i<25;i++)if(Object.prototype.hasOwnProperty.call(old,i))data[(Math.floor(i/5)*3+1)*15+(i%5)*3+1]=old[i]}const d=FrontieresEco.detailAt(cell(),S.x,S.y,S.seed||1);data.base=d.tiles.flat();}return FrontieresEco.syncDetail(data,cell(),S.x,S.y,S.seed||1)}
+function subDiscover(){const data=subData();if(!Array.isArray(data.seen))data.seen=[];for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const x=subX+dx,y=subY+dy;if(x>=0&&x<15&&y>=0&&y<15&&Math.abs(dx)+Math.abs(dy)<=3&&!data.seen.includes(y*15+x))data.seen.push(y*15+x)}}
+function subGlyph(i){const data=subData();return data[i]??data.base[i]}
+function refreshSubGrid(){const grid=$("detailGrid"),data=subData(),key=subKey();subDiscover();if(grid.dataset.territory!==key||grid.children.length!==225){grid.replaceChildren();for(let i=0;i<225;i++){const b=document.createElement("button");b.className="detail-tile";b.title="Sous-zone "+(i%15+1)+","+(Math.floor(i/15)+1);b.onclick=()=>subMove(i%15,Math.floor(i/15));grid.append(b)}grid.dataset.territory=key}for(let i=0;i<225;i++){const g=subGlyph(i),b=grid.children[i],k=g==="T"?"forest":g==="^"?"rock":g==="~"||g===";"?"water":g==="a"?"fauna":g==="W"?"predator":g==="t"?"plant":"";const cl="detail-tile "+k+(i===subY*15+subX?" sub-player":"");const displayClass=data.seen.includes(i)?cl:"detail-tile unexplored";if(b.className!==displayClass)b.className=displayClass;const label=i===subY*15+subX?"@":data.seen.includes(i)?g:"?";if(b.textContent!==label)b.textContent=label}}
+function subMove(x,y){if(mapZoom!==2)return;const nx=Math.max(0,Math.min(14,x)),ny=Math.max(0,Math.min(14,y));if(nx===subX&&ny===subY)return;const g=subGlyph(ny*15+nx);if(Math.abs(nx-subX)+Math.abs(ny-subY)>1){note("Déplace-toi vers une case voisine.");return}if(g==="~"||g==="^"){note("Passage difficile : eau ou roche. Choisis une autre sous-zone.");return}subX=nx;subY=ny;render();note("Sous-zone "+(subX+1)+","+(subY+1)+" explorée. Observer ou récolter pour interagir.")}
+function subInspect(){const g=subGlyph(subY*15+subX);const names={T:"Bosquet d’arbres",t:"Arbustes",a:"Herbivores",W:"Prédateur", ".":"Clairière", "^":"Affleurement rocheux", "~":"Étendue d’eau", ";":"Roseaux", ":":"Terrain aride", "*":"Toundra", "\"":"Herbes de savane", "\u0027":"Sol sec"};note("Sous-zone "+(subX+1)+","+(subY+1)+" : "+(names[g]||"Paysage naturel")+". Territoire : "+cell().biome+".")}
+function subGather(){const data=subData(),i=subY*15+subX,g=subGlyph(i);if(g==="T"||g==="t"){S.wood+=g==="T"?3:1;cell().trees=Math.max(0,(cell().trees||0)-1);cell().vegetation=Math.max(0,cell().vegetation-3);data[i]=".";note("Bois récolté dans la sous-zone.")}else if(g==="."||g==="\""||g===";"){S.food+=1;cell().vegetation=Math.max(0,cell().vegetation-2);data[i]=":";note("Plantes et nourriture récoltées.")}else if(g===":"){note("Cette sous-zone a peu de ressources.")}else{note("Aucune ressource récoltable ici.")}render()}
+function ecoCounts(data){
+ let plants=0,herb=0,pred=0;
+ for(let i=0;i<225;i++){const g=data[i]??data.base[i];if(g==="T"||g==="t"||g==="."||g==='"'||g===";")plants++;if(g==="a")herb++;if(g==="W")pred++}
+ return {plants,herb,pred};
+}
+// L'effectif est simulé une seule fois par le moteur planétaire.
+function localEcologyDay(){
+ if(!S.subzones?.[subKey()])return 0;
+ const data=subData(),weather=FrontieresEco.weatherAt(cell(),S.day,S.seed||1);
+ const wet=/Pluie|Averses|Orage|Neige/.test(weather.type),growing=["Printemps","Été"].includes(weather.season);
+ let changes=0;
+ for(let i=0;i<225;i++){
+  const g=data[i]??data.base[i],r=rng(S.seed+S.day*997+i*71+S.x*31+S.y*47);
+  let next=g;
+  if(g===":"&&wet&&growing&&r<.035)next=".";
+  else if(g==="."&&wet&&growing&&r<.045)next="t";
+  else if(g==="t"&&wet&&growing&&r<.018)next="T";
+  else if(g==="t"&&!wet&&!growing&&r<.025)next=".";
+  else if(g==="T"&&!wet&&!growing&&r<.004)next="t";
+  if(next!==g){data[i]=next;changes++;}
+ }
+ changes+=FrontieresEco.animateDetail(data,S.day,S.seed||1);
+ data.lastEco={day:S.day,changes};
+ S.ecoLocalChanges=(S.ecoLocalChanges||0)+changes;
+ return changes;
+}
+function ecologyDay(){
+ S.eco=FrontieresEco.advance(S.map,S.day,S.x,S.y,S.seed||1);
+ const changes=localEcologyDay();
+ for(const event of S.eco.events||[])say(event);
+ return changes;
+}
+function render(){
+ let el=$("world");el.innerHTML="";
+ const localClimate=FrontieresEco.weatherAt(cell(),S.day,S.seed||1);
+ const wrap=el.parentElement;
+ const timeClass=S.hour>=21||S.hour<5?"night":S.hour>=5&&S.hour<7?"dawn":S.hour>=18&&S.hour<21?"dusk":"day";
+ const weatherClass=localClimate.type==="Pluie"||localClimate.type==="Averses"?"rain":localClimate.type==="Orage"?"storm":localClimate.type==="Neige"?"snow":localClimate.type==="Brouillard"?"fog":"clear";
+ wrap.className="worldwrap "+timeClass+" "+weatherClass;
+
+ const size=mapZoom===0?3:mapZoom===1?2:1,cols=mapZoom===0?48:mapZoom===1?24:15,rows=mapZoom===0?24:mapZoom===1?12:15;
+ el.className="world "+(mapZoom===0?"planet":mapZoom===1?"continent":"local");
+ const startX=mapZoom===0?0:mapZoom===1?mapCenterX-24:mapCenterX-Math.floor(VIEW/2);
+ const startY=mapZoom===0?0:mapZoom===1?Math.max(0,Math.min(H-24,mapCenterY-12)):Math.max(0,Math.min(H-VIEW,mapCenterY-Math.floor(VIEW/2)));
+ for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
+   let x0=startX+gx*size,y0=startY+gy*size,group=[];
+   for(let dy=0;dy<size;dy++)for(let dx=0;dx<size;dx++){
+     let yy=y0+dy,xx=((x0+dx)%W+W)%W;
+     if(yy>=0&&yy<H)group.push(S.map[yy][xx]);
+   }
+   if(!group.length)continue;
+   const river=group.some(z=>z.waterway),water=group.filter(z=>z.t==="water").length>group.length*.45;
+   const counts={};group.forEach(z=>counts[z.biome]=(counts[z.biome]||0)+1);
+   const biome=Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];
+   const c=river?group.find(z=>z.waterway):water?group.find(z=>z.t==="water"):group.find(z=>z.biome===biome)||group[0];
+   const b=document.createElement("button");b.className="tile "+biomeClass(c);
+   b.style.setProperty("--phase","-"+(((gx*7+gy*3)%13)*.19).toFixed(2)+"s");
+   if(mapZoom===2&&c.predators>0)b.classList.add("animal-predator");
+   else if(mapZoom===2&&c.fauna>0)b.classList.add("animal-herbivore");
+
+   const px=Math.floor(S.x/size),py=Math.floor(S.y/size);
+   const gxWorld=mapZoom===0?gx:mapZoom===1?startX+gx*size: x0;
+   const gyWorld=mapZoom===0?gy:mapZoom===1?startY+gy*size:y0;
+   const containsPlayer=mapZoom===0?(Math.floor(S.x/3)===gx&&Math.floor(S.y/3)===gy):mapZoom===1?(S.x>=gxWorld&&S.x<gxWorld+size&&S.y>=gyWorld&&S.y<gyWorld+size):((x0%W+W)%W===S.x&&y0===S.y);
+   if(containsPlayer)b.classList.add("player");
+   b.textContent=glyph(c,containsPlayer);
+   b.title=(river?"Cours d’eau · ":water?"Eau · ":"")+biome+" · "+(mapZoom===0?"secteur "+(gx+1)+","+(gy+1):"");
+   b.onclick=()=>{
+     const tx=((x0+Math.floor(size/2))%W+W)%W,ty=Math.max(0,Math.min(H-1,y0+Math.floor(size/2)));
+     if(mapZoom===2){walkTo(tx,ty)}else {mapCenterX=tx;mapCenterY=ty;mapZoom=Math.min(2,mapZoom+1);render();}
+   };
+   el.append(b);
+ }
+ $("zoomLabel").textContent=mapZoom===0?"PLANÈTE":mapZoom===1?"RÉGION":"TERRAIN";
+ const detailPanel=$("territoryPanel");detailPanel.hidden=mapZoom!==2;
+ $("exploreBtn").textContent=mapZoom===2?"[ EXPLORATION ACTIVE · @ DANS LA GRILLE CI-DESSOUS ]":"[ EXPLORER LE TERRITOIRE ]";
+ if(mapZoom===2){
+  const d=FrontieresEco.detailAt(cell(),S.x,S.y,S.seed||1);
+  refreshSubGrid();
+  $("ecoStatus").textContent="Jour "+S.day+" · "+(S.ecoLocalChanges||0)+" transformations observées";
+  const pop=ecoCounts(subData()),eco=S.eco||{};$("ecoPop").textContent="Végétation "+pop.plants+" · Herbivores "+cell().fauna+" · Prédateurs "+cell().predators+" · Chasses (monde) "+(eco.hunts||0)+" · Naissances (monde) "+(eco.births||0)+" · Morts (monde) "+(eco.deaths||0)+" · Migrations (monde) "+((eco.migrations?.herbivores||0)+(eco.migrations?.predators||0))+" (dernier jour)";
+  $("detailSummary").textContent=d.trees+" zones boisées · "+d.rocks+" zones rocheuses · "+d.clearings+" clairières · "+d.wetlands+" zones humides. Chaque sous-zone fait environ "+d.subzoneKm+" km de côté à l’équateur. Touchez une case ou utilisez les flèches pour vous déplacer.";
+ }
+ $("zoomOut").disabled=mapZoom===0;$("zoomIn").disabled=mapZoom===2;
+ $("mapCoords").textContent=mapZoom===0?"GLOBE ENTIER · OCÉANS ET CONTINENTS":mapZoom===1?"RÉGION AUTOUR DE VOUS · RELIEF ET FLEUVES":"TERRITOIRE "+(S.x+1)+","+ (S.y+1)+" · ENVIRON 62 500 KM²";
+ ["wood","stone","ore","food"].forEach(k=>$(k).textContent=S[k]);
+ $("clock").textContent="JOUR "+S.day+" · "+String(S.hour).padStart(2,"0")+"H · "+(S.hour>=6&&S.hour<20?"JOUR":"NUIT");
+ $("xy").textContent=(S.x+1)+", "+(S.y+1);
+ let climate=localClimate;
+ $("season").textContent=climate.season+" · ANNÉE "+climate.year;$("weather").textContent=climate.type;$("temperature").textContent=climate.temperature+" °C";
+ $("climate").textContent=cell().biome+" · HUMIDITÉ "+Math.round(cell().moisture*100)+"% · SOL "+cell().soil;
+ let eco=S.eco||FrontieresEco.populationTotals(S.map);$("wildlife").textContent=eco.herb+" herbivores · "+eco.pred+" prédateurs";$("ecoDetail").textContent=eco.trees+" arbres · populations migrantes et dépendantes de la végétation";
+ $("biomeLegend").textContent="@ VOUS · T FORÊT · ^ MONTAGNE · ~ OCÉAN / FLEUVE · % RUINES · : DÉSERT · * Toundra";
+ $("where").textContent=cell().b?defs[cell().b].n:({forest:"Forêt",rock:"Montagne",water:cell().waterKind==="lake"?"Lac":cell().waterKind==="river"?"Rivière":"Océan",ruin:"Ruines anciennes",sand:"Terrain sableux",grass:"Terrain herbeux"}[cell().t]);
+ $("population").textContent="POPULATION : "+S.pop;$("mood").textContent=S.mood+" %";$("moodbar").style.width=S.mood+"%";
+ $("days").textContent=(S.food/Math.max(1,S.pop*.5)).toFixed(1)+" JOURS";$("foodbar").style.width=Math.min(100,S.food/30*100)+"%";
+ let jobs=assign();$("workers").textContent=jobs.map(j=>j.n+" : "+j.count).join(" · ")||"AUCUN MÉTIER SPÉCIALISÉ";
+}
+$("exploreBtn").onclick=()=>{mapZoom=2;mapCenterX=S.x;mapCenterY=S.y;render();$("territoryPanel").scrollIntoView({behavior:"smooth",block:"center"});};
+function assign(){let out=[],free=S.pop;for(let [k,n] of [["farm","F Cultivateurs"],["sawmill","S Bûcherons"],["mine","M Mineurs"]]){let count=Math.min(S.buildings.filter(b=>b===k).length,free);free-=count;if(count)out.push({n,count})}if(free)out.push({n:"🧺 Polyvalents",count:free});return out}
+function note(t){$("notice").textContent=t}
+let walkId=0, wildlifeClock=0, wildlifeTimer;
+function walkTo(tx,ty){tx=Math.max(0,Math.min(W-1,tx));ty=Math.max(0,Math.min(H-1,ty));if(cell().t==="water"){let rescue=null,rd=Infinity;for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++)if(S.map[yy][xx].t!=="water"){let d=Math.abs(xx-S.x)+Math.abs(yy-S.y);if(d<rd){rd=d;rescue={x:xx,y:yy}}}if(rescue){S.x=rescue.x;S.y=rescue.y;note("Tu étais bloqué en mer : retour automatique sur la terre ferme.")}}let start=S.y*W+S.x,goal=ty*W+tx,prev=new Int32Array(W*H);prev.fill(-2);prev[start]=-1;let q=new Int32Array(W*H),head=0,tail=0;q[tail++]=start;while(head<tail){let p=q[head++],x=p%W,y=Math.floor(p/W);let left=(x+W-1)%W,right=(x+1)%W;{let n=y*W+left;if(prev[n]===-2&&S.map[y][left].t!=="water"){prev[n]=p;q[tail++]=n}}{let n=y*W+right;if(prev[n]===-2&&S.map[y][right].t!=="water"){prev[n]=p;q[tail++]=n}}if(y>0){let n=p-W;if(prev[n]===-2&&S.map[y-1][x].t!=="water"){prev[n]=p;q[tail++]=n}}if(y<H-1){let n=p+W;if(prev[n]===-2&&S.map[y+1][x].t!=="water"){prev[n]=p;q[tail++]=n}}}
+if(prev[goal]===-2){let best=-1,dist=Infinity;for(let i=0;i<tail;i++){let p=q[i],d=Math.min(Math.abs(p%W-tx),W-Math.abs(p%W-tx))+Math.abs(Math.floor(p/W)-ty);if(d<dist){dist=d;best=p}}goal=best;if(goal<0||goal===start){note("Aucun passage terrestre accessible dans cette direction.");return}note("Cette case est isolée par l'eau. Je te conduis jusqu'au point terrestre accessible le plus proche.")}
+let path=[];for(let p=goal;p!==start&&p!==-1;p=prev[p])path.push(p);path.reverse();if(!path.length){render();return}let id=++walkId,step=0;note("Déplacement en cours…");function advance(){if(id!==walkId||step>=path.length)return;let p=path[step++];S.x=p%W;S.y=Math.floor(p/W);mapCenterX=S.x;mapCenterY=S.y;cell().explored=true;render();if(step<path.length) setTimeout(advance,75);else note("Destination atteinte.")}advance()}
+function move(dx,dy){let x=(S.x+dx+W)%W,y=S.y+dy;if(!cell(x,y)||cell(x,y).t==="water")return note("Passage impossible.");S.x=x;S.y=y;subX=7;subY=7;mapCenterX=x;mapCenterY=y;cell().explored=true;render()}
+$("zoomOut").onclick=()=>{mapCenterX=S.x;mapCenterY=S.y;mapZoom=Math.max(0,mapZoom-1);render()};$("zoomIn").onclick=()=>{mapCenterX=S.x;mapCenterY=S.y;mapZoom=Math.min(2,mapZoom+1);render()};document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{if(mapZoom===2){const [dx,dy]=b.dataset.m.split(",").map(Number);subMove(subX+dx,subY+dy)}else move(...b.dataset.m.split(",").map(Number))});
+$("gather").onclick=()=>{if(mapZoom===2)return subGather();let c=cell();if(c.b)return note("Un bâtiment occupe cette case.");if(c.t==="forest"){S.wood+=4;c.t="grass";c.trees=Math.max(0,c.trees-3);c.vegetation=Math.max(0,c.vegetation-42);say("Une parcelle de forêt est exploitée.")}else if(c.t==="rock"){S.stone+=3;if(c.mineral&&c.mineralAmount>0){S.ore+=c.mineralAmount;c.mineralAmount=0;say("Filon de "+c.mineral+" extrait.");}}else if(c.t==="sand"){S.ore++;c.t="grass"}else if(c.t==="ruin"){S.ore+=2;c.t="grass";say("Des fragments technologiques sont récupérés.")}else if(c.t==="grass")S.food+=2;else return note("Aucune ressource exploitable.");note("Ressources récoltées.");render()};
+$("inspect").onclick=()=>{if(mapZoom===2)return subInspect();let c=cell();note((c.b?defs[c.b].n+" — installation de la colonie.":c.biome+" · sol "+c.soil+" · géologie "+(c.geology||"inconnue"))+". Végétation : "+Math.round(c.vegetation)+"%. Arbres : "+c.trees+". Herbivores : "+c.fauna+". Prédateurs : "+(c.predators||0)+". Humidité : "+Math.round(c.moisture*100)+"%."+(c.mineral?" Minerai : "+c.mineral+" ("+c.mineralAmount+").":"")+(c.floodplain?" Plaine alluviale fertile.":""));};
+$("build").onclick=()=>{$("builds").hidden=!$("builds").hidden};
+document.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{let k=b.dataset.b,d=defs[k],c=cell();if(c.b||["water","rock","ruin"].includes(c.t))return note("Terrain inadapté.");if(S.wood<d.w||S.stone<d.s)return note("Ressources insuffisantes.");S.wood-=d.w;S.stone-=d.s;c.b=k;S.buildings.push(k);say(d.n+" construit(e).");note(d.n+" construit(e) !");render()});
+function wildlifeStep(){
+ if(paused||ecologyBusy||!S?.map||mapZoom!==2||!S.subzones?.[subKey()])return;
+ wildlifeClock++;
+ if(FrontieresEco.animateDetail(subData(),wildlifeClock,S.seed||1))refreshSubGrid();
+}
+$("ecoAdvance").onclick=async()=>{
+ if(ecologyBusy)return;
+ ecologyBusy=true;$("ecoAdvance").disabled=true;
+ const state=S;
+ try{
+  if(mapZoom!==2){mapZoom=2;render()}subData();let changes=0;
+  for(let n=0;n<30;n++){
+   if(S!==state)return; // Une nouvelle partie annule la simulation précédente.
+   S.day++;changes+=ecologyDay();
+   if(n%5===4){render();await new Promise(resolve=>setTimeout(resolve,0));}
+  }
+  if(S===state){render();note("Simulation écologique : 30 jours écoulés sur toute la planète, "+changes+" transformations de terrain ou déplacements d’animaux.");}
+ }finally{ecologyBusy=false;$("ecoAdvance").disabled=false;}
+};
+function tick(){if(paused||ecologyBusy)return;S.hour++;if(S.hour>=24){S.hour=0;S.day++;ecologyDay();let f=S.buildings.filter(x=>x==="farm").length,sw=S.buildings.filter(x=>x==="sawmill").length,m=S.buildings.filter(x=>x==="mine").length;let jobs=assign();let farmers=jobs.find(x=>x.n==="🌱 Cultivateurs")?.count||0,woodcut=jobs.find(x=>x.n==="🪚 Bûcherons")?.count||0,mining=jobs.find(x=>x.n==="⛏ Mineurs")?.count||0;S.food+=farmers*4-S.pop*.6;S.wood+=woodcut*2;S.ore+=mining;if(S.food<0){S.food=0;S.mood=Math.max(0,S.mood-10);say("Pénurie alimentaire : le moral s'effondre.")}else S.mood=Math.min(100,S.mood+1);if(S.food>S.pop*4&&S.buildings.includes("hut")&&S.pop<24&&rng(S.day)>.72){S.pop++;say("Un nouvel arrivant rejoint la colonie.")}if(S.day%3===0)say("Jour "+S.day+" — la colonie poursuit son développement.");render()}else render()}
+function start(){clearInterval(timer);timer=setInterval(tick,1800/speed);clearInterval(wildlifeTimer);wildlifeTimer=setInterval(wildlifeStep,1100)}
+$("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"[ REPRENDRE ]":"Ⅱ Pause"};$("speed").onclick=()=>{speed=speed===1?2:speed===2?4:1;$("speed").textContent="Vitesse ×"+speed;start()};
+$("save").onclick=()=>{localStorage.setItem("frontieres-save",JSON.stringify(S));note("Sauvegarde enregistrée sur cet appareil.")};$("reset").onclick=()=>{if(confirm("Recommencer la partie ?")){localStorage.removeItem("frontieres-save");fresh()}};
+try{let saved=localStorage.getItem("frontieres-save");if(saved){S=JSON.parse(saved);S.seed=S.seed||Math.floor(Math.random()*999999)+1;S.map=FrontieresEco.migrate(S.map,S.seed);if(S.map.length!==H||S.map[0].length!==W){const old=S.map,expanded=FrontieresEco.generate(W,H,S.seed);if(old.length===H&&old[0].length===W/2){for(let y=0;y<H;y++)for(let x=0;x<W/2;x++){expanded[y][x*2]={...old[y][x]};expanded[y][x*2+1]={...old[y][x]};}S.x=Math.min(W-1,S.x*2);}else{for(let y=0;y<Math.min(H,old.length);y++)for(let x=0;x<Math.min(W,old[y].length);x++)expanded[y][x]={...old[y][x]};}S.map=expanded;}S.eco={...S.eco,...FrontieresEco.populationTotals(S.map)};S.x=((S.x%W)+W)%W;S.y=Math.max(0,Math.min(H-1,S.y));mapZoom=0;mapCenterX=S.x;mapCenterY=S.y;render()}else fresh()}catch(e){fresh()}mapZoom=2;mapCenterX=S.x;mapCenterY=S.y;render();start();
+</script></body></html>

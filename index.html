@@ -14,6 +14,14 @@ button{background:var(--p2);border:1px solid #405447;border-radius:2px;color:var
 .player{color:#f0d28d!important;background:#343022!important;outline:1px solid #b89b5e;z-index:1}
 /* Vie visuelle : animations discrètes, sans surcharge du rendu ASCII */
 .worldwrap{position:relative;isolation:isolate;transition:background-color 1.4s ease,filter 1.4s ease}
+/* Animations perceptibles même à l'échelle planétaire */
+.world.planet .tile{animation:planet-life 1.55s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+.world.planet .biome-ocean,.world.planet .biome-lac,.world.planet .biome-littoral{animation:planet-water 1.25s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+@keyframes planet-life{from{filter:brightness(.82)}to{filter:brightness(1.22)}}
+@keyframes planet-water{from{filter:brightness(.72);text-shadow:none}to{filter:brightness(1.5);text-shadow:0 0 4px currentColor}}
+/* Les animaux gardent leur animation au-dessus des règles générales des cases */
+.world:not(.planet) .tile.animal-herbivore{animation:animal-step 1.1s ease-in-out infinite,animal-wander 1.5s ease-in-out infinite}
+.world:not(.planet) .tile.animal-predator{animation:animal-step 1.25s ease-in-out infinite,predator-prowl 1.6s ease-in-out infinite}
 .world{position:relative;z-index:1}
 .world:not(.planet) .tile{position:relative;transform-origin:50% 85%;animation:tile-enter .42s both;animation-delay:var(--phase,0s);transition:color .5s ease,filter .5s ease}
 @keyframes tile-enter{from{opacity:.55}to{opacity:1}}

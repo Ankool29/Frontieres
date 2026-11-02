@@ -46,7 +46,7 @@
         row.push({t,b:null,biome,elevation:+e.toFixed(3),moisture:+m.toFixed(3),temperature:+temp.toFixed(3),
           vegetation:t==="forest"?65+Math.round(m*30):t==="grass"?20+Math.round(m*38):t==="sand"?3:0,
           trees:t==="forest"?5+Math.floor(hash(x,y,seed+9)*8):0,
-          fauna:["Forêt tempérée","Taïga","Prairie","Savane"].includes(biome)?1+Math.floor(hash(x,y,seed+13)*4):0,
+          fauna:["Forêt tempérée","Taïga","Prairie","Savane","Marécage"].includes(biome)?Math.floor(hash(x,y,seed+13)*4):0,predators:["Forêt tempérée","Taïga","Prairie","Savane"].includes(biome)&&hash(x,y,seed+17)>.91?1:0,
           explored:false,soil:m>.72?"tourbeux":m>.62?"fertile":e>.50?"rocheux":m<.22?"sableux":"ordinaire",geology:e>.50?(geo>.66?"granite":geo>.33?"basalte":"métamorphique"):(geo>.55?"calcaire":geo>.28?"grès":"sédimentaire"),mineral:mineralRoll>.94?(geo>.5?"fer": "cuivre"):mineralRoll>.89?"charbon":null,mineralAmount:mineralRoll>.89?1+Math.floor(hash(x,y,seed+83)*5):0,floodplain:false,waterway:false,
           waterKind:t==="water"?"ocean":null,flow:0,downstream:null});
       }
@@ -95,7 +95,7 @@
     const generated = generate(map[0].length, map.length, seed || 1);
     map.forEach((row, y) => row.forEach((c, x) => {
       const g = generated[y][x];
-      ["biome", "elevation", "moisture", "temperature", "vegetation", "trees", "fauna", "soil", "waterway", "waterKind", "flow", "downstream", "geology", "mineral", "mineralAmount", "floodplain"].forEach(k => { if (c[k] === undefined) c[k] = g[k]; });
+      ["biome", "elevation", "moisture", "temperature", "vegetation", "trees", "fauna", "predators", "soil", "waterway", "waterKind", "flow", "downstream", "geology", "mineral", "mineralAmount", "floodplain"].forEach(k => { if (c[k] === undefined) c[k] = g[k]; });
       if (c.t === "forest" && c.trees === 0) c.trees = 5;
       c.explored = c.explored || false;
     }));
@@ -112,25 +112,76 @@
     else if (roll < .12) type = "Brouillard";
     return { type, season: s.name, year: s.year, temperature: Math.round(clamp(temp, 0, 1) * 34 - 8) };
   }
+  // Simulation journalière de l'écosystème. Les populations sont stockées par cellule ;
+  // les déplacements sont appliqués en fin de journée pour éviter les effets d'ordre.
   function advance(map, day, px, py, seed) {
-    map.forEach((row, y) => row.forEach((c, x) => {
-      const near = Math.abs(x - px) <= 4 && Math.abs(y - py) <= 4;
-      if (!near && day % 4 !== 0) return;
-      const s = season(day).name;
-      const growth = s === "Printemps" ? 1.35 : s === "Été" ? .8 : s === "Automne" ? .35 : .08;
-      const localWeather = weatherAt(c, day, seed + x * 31 + y * 17);
-      if (["Pluie", "Orage", "Averses", "Neige"].includes(localWeather.type)) c.moisture = clamp(c.moisture + .035, 0, 1);
-      else if (localWeather.temperature > 20) c.moisture = clamp(c.moisture - .012, 0, 1);
-      if (["Forêt tempérée", "Taïga", "Marécage"].includes(c.biome)) {
-        if (c.trees > 0) c.vegetation = clamp(c.vegetation + growth * (c.moisture + .25), 0, 100);
-        else if (c.moisture > .48 && hash(x, y, seed + day) > .55) c.vegetation = clamp(c.vegetation + growth * .7, 0, 100);
-        if (c.trees === 0 && c.vegetation > 58) c.trees = 1;
-        else if (c.trees > 0 && c.trees < 14 && c.vegetation > 72 && hash(x, y, seed + day + 5) > .72) c.trees++;
-        if (c.trees > 0 && c.vegetation > 32) c.t = "forest";
-      } else if (["Prairie", "Savane"].includes(c.biome)) c.vegetation = clamp(c.vegetation + growth * (c.moisture - .25), 0, 75);
-      if (c.fauna > 0 && c.vegetation < 12) c.fauna = Math.max(0, c.fauna - 1);
-      else if (c.fauna < 6 && c.vegetation > 55 && hash(x, y, seed + day + 19) > .94) c.fauna++;
-    }));
+    const h=map.length,w=map[0].length,events=[],moves=Array.from({length:h},()=>Array.from({length:w},()=>({fauna:0,predators:0})));
+    const seasonName=season(day).name;
+    const seasonGrowth={"Printemps":1.45,"Été":.82,"Automne":.32,"Hiver":.06}[seasonName];
+    const wrap=x=>(x+w)%w;
+    let herbivores=0,predatorCount=0,green=0;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const c=map[y][x]; if(c.t==="water"||c.t==="rock"||c.t==="ruin")continue;
+      const local=weatherAt(c,day,seed+x*31+y*17),temp=local.temperature;
+      const wet=["Pluie","Orage","Averses","Neige"].includes(local.type);
+      if(wet)c.moisture=clamp(c.moisture+.025,0,1);
+      else c.moisture=clamp(c.moisture-(temp>23?.018:.006),0,1);
+      const forest=["Forêt tempérée","Taïga","Marécage"].includes(c.biome);
+      const grass=["Prairie","Savane","Toundra"].includes(c.biome);
+      if(forest){
+        if(c.trees>0){
+          c.vegetation=clamp(c.vegetation+seasonGrowth*(c.moisture-.18),0,100);
+          if(c.moisture<.12&&temp>20&&hash(x,y,seed+day*3)<.025){c.trees=Math.max(0,c.trees-1);c.vegetation=Math.max(0,c.vegetation-12);}
+        }else if(c.moisture>.43&&c.vegetation>35&&hash(x,y,seed+day*5)>.975)c.trees=1;
+        if(c.trees>0&&c.trees<14&&c.vegetation>65&&c.moisture>.38&&hash(x,y,seed+day+5)>.91)c.trees++;
+        if(c.trees>0&&c.vegetation>24)c.t="forest";else if(c.t==="forest")c.t="grass";
+      }else if(grass){
+        const climateFactor=c.moisture<.12?-.7:1;
+        c.vegetation=clamp(c.vegetation+seasonGrowth*climateFactor*(c.moisture+.15),0,85);
+      }else if(c.biome==="Désert")c.vegetation=clamp(c.vegetation+(wet?.08:-.015),0,15);
+      if(c.vegetation>0)green++;
+      let herb=Math.max(0,c.fauna||0),pred=Math.max(0,c.predators||0);
+      // Herbivores eat vegetation, reproduce only when food and climate permit.
+      if(herb>0){
+        const consumed=Math.min(c.vegetation,herb*(forest?.65:1.05));
+        c.vegetation=Math.max(0,c.vegetation-consumed);
+        const stress=c.vegetation<8||c.moisture<.08||temp< -8;
+        if(stress&&hash(x,y,seed+day*7)<.22)herb--;
+        else if(!stress&&c.vegetation>48&&c.moisture>.25&&herb<7&&hash(x,y,seed+day*11)>.965)herb++;
+      }else if(c.vegetation>58&&c.moisture>.3&&temp>0&&hash(x,y,seed+day*13)>.992)herb=1;
+      // Predators consume local prey and disperse toward neighboring prey-rich cells.
+      if(pred>0&&herb>0&&hash(x,y,seed+day*17)>.35){herb--;if(hash(x,y,seed+day*19)>.82&&pred<3)pred++;}
+      else if(pred>0&&hash(x,y,seed+day*23)>.94)pred--;
+      if(pred===0&&herb>=3&&hash(x,y,seed+day*29)>.997)pred=1;
+      c.fauna=herb;c.predators=pred;herbivores+=herb;predatorCount+=pred;
+      // Migration: a small fraction of animals moves one tile toward better habitat.
+      for(const kind of ["fauna","predators"]){
+        const count=kind==="fauna"?herb:pred;
+        if(!count||hash(x,y,seed+day*(kind==="fauna"?31:37))<.88)continue;
+        let best=null,bestScore=-Infinity;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dx||dy){
+          const ny=y+dy,nx=wrap(x+dx);if(ny<0||ny>=h)continue;
+          const n=map[ny][nx];if(n.t==="water"||n.t==="rock"||n.t==="ruin")continue;
+          const score=(kind==="fauna"?n.vegetation*.65+n.moisture*18+n.fauna*2:n.fauna*12+n.biome==="Forêt tempérée"?4:0)+hash(nx,ny,seed+day+43);
+          if(score>bestScore){bestScore=score;best={x:nx,y:ny};}
+        }
+        if(best){moves[y][x][kind]--;moves[best.y][best.x][kind]++;}
+      }
+    }
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const c=map[y][x],m=moves[y][x];
+      c.fauna=clamp((c.fauna||0)+m.fauna,0,12);
+      c.predators=clamp((c.predators||0)+m.predators,0,5);
+    }
+    // Events are sparse and grounded in actual changes, not random narrative filler.
+    if(day%4===0){
+      let drought=0,abundance=0;
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=map[y][x];if(c.t!=="water"&&c.moisture<.12)drought++;if(c.fauna>=5)abundance++;}
+      if(drought>w*h*.08)events.push("Sécheresse : plusieurs régions manquent d'eau.");
+      if(abundance>8)events.push("Des troupeaux prospèrent dans les régions fertiles.");
+      if(herbivores===0)events.push("La faune herbivore a disparu de cette planète.");
+    }
+    return {events,herbivores,predators:predatorCount,vegetated:green};
   }
   window.FrontieresEco = { generate, migrate, season, weatherAt, advance };
 })();

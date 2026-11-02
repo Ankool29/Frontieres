@@ -25,7 +25,7 @@
       const continental = smoothNoise(x, y, 25, seed + 3) * .62 + smoothNoise(x, y, 12, seed + 7) * .25 + smoothNoise(x, y, 5, seed + 11) * .13;
       const ridgeNoise = smoothNoise(x + 37, y - 19, 10, seed + 23);
       const ridge = 1 - Math.abs(ridgeNoise * 2 - 1);
-      elevationGrid[y][x] = clamp(.02 + continental * .95 + Math.pow(ridge, 3) * .22 - .30, 0, 1);
+      elevationGrid[y][x] = clamp(.09 + continental * .95 + Math.pow(ridge, 3) * .22 - .30, 0, 1);
     }
     // Lissage local : les pentes et les vallées forment des ensembles continus.
     const raw = elevationGrid.map(row => row.slice());
@@ -42,11 +42,11 @@
         const elevation = elevationGrid[y][x], moisture = moistureGrid[y][x];
         const latitude = Math.abs((y / Math.max(1,h-1)) - .5) * 2;
         const temperature = clamp(.94 - latitude * .72 - elevation * .36 + (smoothNoise(x,y,22,seed+43)-.5)*.12,0,1);
-        const biome = elevation < .205 ? "Océan" : elevation > .79 ? "Montagnes" :
+        const biome = elevation < .205 ? "Océan" : elevation > .64 ? "Montagnes" :
           temperature < .22 ? "Toundra" : moisture > .78 && elevation < .48 ? "Marécage" :
           temperature > .69 && moisture < .27 ? "Désert" : temperature < .4 && moisture > .46 ? "Taïga" :
           moisture > .59 ? "Forêt tempérée" : temperature > .59 ? "Savane" : "Prairie";
-        let t = elevation < .205 ? "water" : elevation > .79 ? "rock" : biome === "Désert" ? "sand" :
+        let t = elevation < .205 ? "water" : elevation > .64 ? "rock" : biome === "Désert" ? "sand" :
           ["Forêt tempérée","Taïga","Marécage"].includes(biome) ? "forest" : "grass";
         const vegetation = t === "forest" ? 65 + Math.round(moisture*30) : t === "grass" ? 20 + Math.round(moisture*38) : t === "sand" ? 3 : 0;
         row.push({t,b:null,biome,elevation:+elevation.toFixed(3),moisture:+moisture.toFixed(3),
@@ -73,7 +73,7 @@
     // Cours d'eau : les accumulations importantes dessinent des réseaux qui convergent vers la mer.
     for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
       const c=map[y][x];
-      if(c.t!=="water"&&c.flow>=7){c.waterway=true;c.biome="Littoral";c.moisture=clamp(c.moisture+.16,0,1);}
+      if(c.t!=="water"&&c.flow>=12){c.waterway=true;c.biome="Littoral";c.moisture=clamp(c.moisture+.16,0,1);}
     }
     // Petits lacs intérieurs dans les cuvettes fermées, sans transformer les plaines en mares isolées.
     for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){

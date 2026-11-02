@@ -23,8 +23,9 @@
           moisture > .78 && elevation < .48 ? "Marécage" : temperature > .68 && moisture < .28 ? "Désert" :
           temperature < .42 && moisture > .48 ? "Taïga" : moisture > .57 ? "Forêt tempérée" :
           temperature > .58 ? "Savane" : "Prairie";
-        const t = elevation < .22 ? "water" : elevation > .82 ? "rock" : biome === "Désert" ? "sand" :
+        let t = elevation < .22 ? "water" : elevation > .82 ? "rock" : biome === "Désert" ? "sand" :
           ["Forêt tempérée", "Taïga", "Marécage"].includes(biome) ? "forest" : "grass";
+        if (t !== "water" && hash(x, y, seed + 67) < .012) t = "ruin";
         const vegetation = t === "forest" ? 68 + Math.round(hash(x, y, seed + 4) * 28) :
           t === "grass" ? 25 + Math.round(moisture * 35) : t === "sand" ? 4 : 0;
         row.push({ t, b: null, biome, elevation: +elevation.toFixed(3), moisture: +moisture.toFixed(3),
@@ -63,6 +64,9 @@
       if (!near && day % 4 !== 0) return;
       const s = season(day).name;
       const growth = s === "Printemps" ? 1.35 : s === "Été" ? .8 : s === "Automne" ? .35 : .08;
+      const localWeather = weatherAt(c, day, seed + x * 31 + y * 17);
+      if (["Pluie", "Orage", "Averses", "Neige"].includes(localWeather.type)) c.moisture = clamp(c.moisture + .035, 0, 1);
+      else if (localWeather.temperature > 20) c.moisture = clamp(c.moisture - .012, 0, 1);
       if (["Forêt tempérée", "Taïga", "Marécage"].includes(c.biome)) {
         if (c.trees > 0) c.vegetation = clamp(c.vegetation + growth * (c.moisture + .25), 0, 100);
         else if (c.moisture > .48 && hash(x, y, seed + day) > .55) c.vegetation = clamp(c.vegetation + growth * .7, 0, 100);

@@ -187,8 +187,8 @@
   function detailAt(tile,x,y,seed){
     const b=tile.biome||'Prairie',out=[],forest=b==='Forêt tempérée'||b==='Taïga',wet=b==='Marécage',desert=b==='Désert',mountain=b==='Montagnes'||tile.t==='rock',tundra=b==='Toundra',savanna=b==='Savane',water=tile.t==='water';
     let trees=0,rocks=0,clearings=0,wetlands=0;
-    for(let gy=0;gy<5;gy++){const row=[];for(let gx=0;gx<5;gx++){const r=hash(x*7+gx,y*7+gy,seed+Math.round(tile.moisture*100)+Math.round(tile.vegetation));let g='.';
-      if(water)g='~';else if(mountain)g=r<.58?'^':r<.82?':':'.';else if(forest)g=tile.trees>0?(r<.58?'T':r<.78?'t':'.'):(r<.25?'t':'.');else if(wet)g=r<.22?'~':r<.7?';':r<.86?'t':'.';else if(desert)g=r<.72?':':r<.9?"'":'.';else if(tundra)g=r<.52?'*':r<.76?'^':'.';else if(savanna)g=r<.16?'T':r<.43?'"':'.';else g=r<.12?'^':r<.28?'t':'.';
+    for(let gy=0;gy<5;gy++){const row=[];for(let gx=0;gx<5;gx++){const r=hash(x*7+gx,y*7+gy,seed+701);let g='.';
+      if(water)g='~';else if(mountain)g=r<.58?'^':r<.82?':':'.';else if(forest)g=r<.58?'T':r<.78?'t':'.';else if(wet)g=r<.22?'~':r<.7?';':r<.86?'t':'.';else if(desert)g=r<.72?':':r<.9?"'":'.';else if(tundra)g=r<.52?'*':r<.76?'^':'.';else if(savanna)g=r<.16?'T':r<.43?'"':'.';else g=r<.12?'^':r<.28?'t':'.';
       if(g==='T')trees++;if(g==='^')rocks++;if(g==='~'||g===';')wetlands++;if(g==='.')clearings++;row.push(g)}out.push(row)}
     if(!water&&!mountain&&tile.fauna>0){const n=Math.min(3,Math.ceil(tile.fauna/2));for(let i=0;i<n;i++){const gx=Math.floor(hash(x+i*3,y+i*5,seed+401)*5),gy=Math.floor(hash(x+i*7,y+i*2,seed+409)*5);out[gy][gx]='a'}}
     if(!water&&!mountain&&tile.predators>0){const gx=Math.floor(hash(x+11,y+17,seed+419)*5),gy=Math.floor(hash(x+19,y+3,seed+421)*5);out[gy][gx]='W'}

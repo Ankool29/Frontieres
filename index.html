@@ -39,7 +39,7 @@ function render(){
  const size=mapZoom===0?3:mapZoom===1?2:1,cols=mapZoom===0?48:mapZoom===1?24:15,rows=mapZoom===0?24:mapZoom===1?12:15;
  el.className="world "+(mapZoom===0?"planet":mapZoom===1?"continent":"local");
  const startX=mapZoom===0?0:mapZoom===1?mapCenterX-24:mapCenterX-Math.floor(VIEW/2);
- const startY=mapZoom===0?0:mapZoom===1?mapCenterY-12:mapCenterY-Math.floor(VIEW/2);
+ const startY=mapZoom===0?0:mapZoom===1?Math.max(0,Math.min(H-24,mapCenterY-12)):Math.max(0,Math.min(H-VIEW,mapCenterY-Math.floor(VIEW/2)));
  for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
    let x0=startX+gx*size,y0=startY+gy*size,group=[];
    for(let dy=0;dy<size;dy++)for(let dx=0;dx<size;dx++){

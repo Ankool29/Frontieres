@@ -74,7 +74,7 @@ function fresh(){let seed=Math.floor(Math.random()*999999)+1,map=FrontieresEco.g
 function say(t){S.log.unshift(t);S.log=S.log.slice(0,30);$("log").innerHTML=S.log.map(x=>"<div>"+x+"</div>").join("")}
 function cell(x=S.x,y=S.y){return S.map[y]?.[x]}
 function biomeClass(c){return "biome-"+(c.waterway?"littoral":c.waterKind==="lake"?"lac":c.t==="water"?"ocean":c.t==="ruin"?"ruines":(c.biome||"prairie").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ /g,"-"))}
-function glyph(c,isPlayer=false){if(isPlayer)return "@";if(mapZoom===2&&c.predators>0)return "w";if(mapZoom===2&&c.fauna>=3)return "a";if(c.b)return ({hut:"H",farm:"F",sawmill:"S",mine:"M"})[c.b]||"+";if(c.waterway||c.t==="water")return "~";if(c.t==="rock")return "^";if(c.t==="ruin")return "%";if(c.t==="forest")return "T";if(c.biome==="Forêt tempérée"||c.biome==="Taïga")return c.trees>0?"T":".";if(c.biome==="Désert")return ":";if(c.biome==="Marécage")return ";";if(c.biome==="Toundra")return "*";if(c.biome==="Savane")return '"';if(c.biome==="Littoral")return ",";return "."}
+function glyph(c,isPlayer=false){if(isPlayer)return "@";if(mapZoom===2&&c.predators>0)return "W";if(mapZoom===2&&c.fauna>0)return c.fauna>=4?"A":"a";if(c.b)return ({hut:"H",farm:"F",sawmill:"S",mine:"M"})[c.b]||"+";if(c.waterway||c.t==="water")return "~";if(c.t==="rock")return "^";if(c.t==="ruin")return "%";if(c.t==="forest")return "T";if(c.biome==="Forêt tempérée"||c.biome==="Taïga")return c.trees>0?"T":".";if(c.biome==="Désert")return ":";if(c.biome==="Marécage")return ";";if(c.biome==="Toundra")return "*";if(c.biome==="Savane")return '"';if(c.biome==="Littoral")return ",";return "."}
 function render(){
  let el=$("world");el.innerHTML="";
  const localClimate=FrontieresEco.weatherAt(cell(),S.day,S.seed||1);
@@ -134,7 +134,7 @@ function render(){
 }
 function assign(){let out=[],free=S.pop;for(let [k,n] of [["farm","F Cultivateurs"],["sawmill","S Bûcherons"],["mine","M Mineurs"]]){let count=Math.min(S.buildings.filter(b=>b===k).length,free);free-=count;if(count)out.push({n,count})}if(free)out.push({n:"🧺 Polyvalents",count:free});return out}
 function note(t){$("notice").textContent=t}
-let walkId=0;
+let walkId=0, wildlifeClock=0, wildlifeTimer;
 function walkTo(tx,ty){tx=Math.max(0,Math.min(W-1,tx));ty=Math.max(0,Math.min(H-1,ty));if(cell().t==="water"){let rescue=null,rd=Infinity;for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++)if(S.map[yy][xx].t!=="water"){let d=Math.abs(xx-S.x)+Math.abs(yy-S.y);if(d<rd){rd=d;rescue={x:xx,y:yy}}}if(rescue){S.x=rescue.x;S.y=rescue.y;note("Tu étais bloqué en mer : retour automatique sur la terre ferme.")}}let start=S.y*W+S.x,goal=ty*W+tx,prev=new Int32Array(W*H);prev.fill(-2);prev[start]=-1;let q=new Int32Array(W*H),head=0,tail=0;q[tail++]=start;while(head<tail){let p=q[head++],x=p%W,y=Math.floor(p/W);let left=(x+W-1)%W,right=(x+1)%W;{let n=y*W+left;if(prev[n]===-2&&S.map[y][left].t!=="water"){prev[n]=p;q[tail++]=n}}{let n=y*W+right;if(prev[n]===-2&&S.map[y][right].t!=="water"){prev[n]=p;q[tail++]=n}}if(y>0){let n=p-W;if(prev[n]===-2&&S.map[y-1][x].t!=="water"){prev[n]=p;q[tail++]=n}}if(y<H-1){let n=p+W;if(prev[n]===-2&&S.map[y+1][x].t!=="water"){prev[n]=p;q[tail++]=n}}}
 if(prev[goal]===-2){let best=-1,dist=Infinity;for(let i=0;i<tail;i++){let p=q[i],d=Math.min(Math.abs(p%W-tx),W-Math.abs(p%W-tx))+Math.abs(Math.floor(p/W)-ty);if(d<dist){dist=d;best=p}}goal=best;if(goal<0||goal===start){note("Aucun passage terrestre accessible dans cette direction.");return}note("Cette case est isolée par l'eau. Je te conduis jusqu'au point terrestre accessible le plus proche.")}
 let path=[];for(let p=goal;p!==start&&p!==-1;p=prev[p])path.push(p);path.reverse();if(!path.length){render();return}let id=++walkId,step=0;note("Déplacement en cours…");function advance(){if(id!==walkId||step>=path.length)return;let p=path[step++];S.x=p%W;S.y=Math.floor(p/W);mapCenterX=S.x;mapCenterY=S.y;cell().explored=true;render();if(step<path.length) setTimeout(advance,75);else note("Destination atteinte.")}advance()}
@@ -144,8 +144,36 @@ $("gather").onclick=()=>{let c=cell();if(c.b)return note("Un bâtiment occupe ce
 $("inspect").onclick=()=>{let c=cell();note((c.b?defs[c.b].n+" — installation de la colonie.":c.biome+" · sol "+c.soil+" · géologie "+(c.geology||"inconnue"))+". Végétation : "+Math.round(c.vegetation)+"%. Arbres : "+c.trees+". Herbivores : "+c.fauna+". Prédateurs : "+(c.predators||0)+". Humidité : "+Math.round(c.moisture*100)+"%."+(c.mineral?" Minerai : "+c.mineral+" ("+c.mineralAmount+").":"")+(c.floodplain?" Plaine alluviale fertile.":""));};
 $("build").onclick=()=>{$("builds").hidden=!$("builds").hidden};
 document.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{let k=b.dataset.b,d=defs[k],c=cell();if(c.b||["water","rock","ruin"].includes(c.t))return note("Terrain inadapté.");if(S.wood<d.w||S.stone<d.s)return note("Ressources insuffisantes.");S.wood-=d.w;S.stone-=d.s;c.b=k;S.buildings.push(k);say(d.n+" construit(e).");note(d.n+" construit(e) !");render()});
+function wildlifeStep(){
+ if(paused||!S||!S.map)return;
+ wildlifeClock++;
+ let changed=false;
+ const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+ // Quelques individus se déplacent à chaque impulsion : les effectifs restent constants.
+ for(let n=0;n<4;n++){
+  const idx=Math.floor(rng(wildlifeClock*97+n*13+S.seed)*W*H);
+  const x=idx%W,y=Math.floor(idx/W),src=S.map[y][x];
+  const predator=(wildlifeClock+n)%5===0&&src.predators>0;
+  const kind=predator?"predators":"fauna";
+  if(!(src[kind]>0))continue;
+  let choices=[];
+  for(const [dx,dy] of dirs){
+   const nx=(x+dx+W)%W,ny=y+dy;
+   if(ny<0||ny>=H)continue;
+   const dst=S.map[ny][nx];
+   if(dst.t==="water"||dst.t==="rock"||dst.t==="ruin"||dst.b)continue;
+   const habitat=predator?(dst.fauna*5+(dst.biome==="Forêt tempérée"?3:0)+dst.moisture):(dst.vegetation*.09+dst.moisture*5+dst.fauna*.35);
+   choices.push({dst,score:habitat+rng(wildlifeClock*31+nx*7+ny*19+n)*2});
+  }
+  if(!choices.length)continue;
+  choices.sort((a,b)=>b.score-a.score);
+  const target=choices[0].dst;
+  src[kind]--;target[kind]=(target[kind]||0)+1;changed=true;
+ }
+ if(changed&&mapZoom===2)render();
+}
 function tick(){if(paused)return;S.hour++;if(S.hour>=24){S.hour=0;S.day++;S.eco=FrontieresEco.advance(S.map,S.day,S.x,S.y,S.seed||1);for(const event of S.eco.events||[])say(event);let f=S.buildings.filter(x=>x==="farm").length,sw=S.buildings.filter(x=>x==="sawmill").length,m=S.buildings.filter(x=>x==="mine").length;let jobs=assign();let farmers=jobs.find(x=>x.n==="🌱 Cultivateurs")?.count||0,woodcut=jobs.find(x=>x.n==="🪚 Bûcherons")?.count||0,mining=jobs.find(x=>x.n==="⛏ Mineurs")?.count||0;S.food+=farmers*4-S.pop*.6;S.wood+=woodcut*2;S.ore+=mining;if(S.food<0){S.food=0;S.mood=Math.max(0,S.mood-10);say("Pénurie alimentaire : le moral s'effondre.")}else S.mood=Math.min(100,S.mood+1);if(S.food>S.pop*4&&S.buildings.includes("hut")&&S.pop<24&&rng(S.day)>.72){S.pop++;say("Un nouvel arrivant rejoint la colonie.")}if(S.day%3===0)say("Jour "+S.day+" — la colonie poursuit son développement.");render()}else render()}
-function start(){clearInterval(timer);timer=setInterval(tick,1800/speed)}
+function start(){clearInterval(timer);timer=setInterval(tick,1800/speed);clearInterval(wildlifeTimer);wildlifeTimer=setInterval(wildlifeStep,1100)}
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"[ REPRENDRE ]":"Ⅱ Pause"};$("speed").onclick=()=>{speed=speed===1?2:speed===2?4:1;$("speed").textContent="Vitesse ×"+speed;start()};
 $("save").onclick=()=>{localStorage.setItem("frontieres-save",JSON.stringify(S));note("Sauvegarde enregistrée sur cet appareil.")};$("reset").onclick=()=>{if(confirm("Recommencer la partie ?")){localStorage.removeItem("frontieres-save");fresh()}};
 try{let saved=localStorage.getItem("frontieres-save");if(saved){S=JSON.parse(saved);S.seed=S.seed||Math.floor(Math.random()*999999)+1;S.map=FrontieresEco.migrate(S.map,S.seed);if(S.map.length!==H||S.map[0].length!==W){const old=S.map,expanded=FrontieresEco.generate(W,H,S.seed);if(old.length===H&&old[0].length===W/2){for(let y=0;y<H;y++)for(let x=0;x<W/2;x++){expanded[y][x*2]={...old[y][x]};expanded[y][x*2+1]={...old[y][x]};}S.x=Math.min(W-1,S.x*2);}else{for(let y=0;y<Math.min(H,old.length);y++)for(let x=0;x<Math.min(W,old[y].length);x++)expanded[y][x]={...old[y][x]};}S.map=expanded;}S.x=((S.x%W)+W)%W;S.y=Math.max(0,Math.min(H-1,S.y));mapZoom=0;mapCenterX=S.x;mapCenterY=S.y;render()}else fresh()}catch(e){fresh()}start();

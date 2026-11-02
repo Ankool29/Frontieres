@@ -73,7 +73,8 @@ function render(){
  $("xy").textContent=(S.x+1)+", "+(S.y+1);
  let climate=FrontieresEco.weatherAt(cell(),S.day,S.seed||1);
  $("season").textContent=climate.season+" · ANNÉE "+climate.year;$("weather").textContent=climate.type;$("temperature").textContent=climate.temperature+" °C";
- $("climate").textContent=cell().biome+" · HUMIDITÉ "+Math.round(cell().moisture*100)+"% · SOL "+cell().soil;\n let eco=S.eco||ecoTotals();$("wildlife").textContent=eco.herb+" herbivores · "+eco.pred+" prédateurs";$("ecoDetail").textContent=eco.trees+" arbres · populations migrantes et dépendantes de la végétation";
+ $("climate").textContent=cell().biome+" · HUMIDITÉ "+Math.round(cell().moisture*100)+"% · SOL "+cell().soil;
+ let eco=S.eco||ecoTotals();$("wildlife").textContent=eco.herb+" herbivores · "+eco.pred+" prédateurs";$("ecoDetail").textContent=eco.trees+" arbres · populations migrantes et dépendantes de la végétation";
  $("biomeLegend").textContent="@ VOUS · T FORÊT · ^ MONTAGNE · ~ OCÉAN / FLEUVE · % RUINES · : DÉSERT · * Toundra";
  $("where").textContent=cell().b?defs[cell().b].n:({forest:"Forêt",rock:"Montagne",water:cell().waterKind==="lake"?"Lac":cell().waterKind==="river"?"Rivière":"Océan",ruin:"Ruines anciennes",sand:"Terrain sableux",grass:"Terrain herbeux"}[cell().t]);
  $("population").textContent="POPULATION : "+S.pop;$("mood").textContent=S.mood+" %";$("moodbar").style.width=S.mood+"%";

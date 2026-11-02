@@ -12,6 +12,38 @@ button{background:var(--p2);border:1px solid #405447;border-radius:2px;color:var
 .tile{display:flex;align-items:center;justify-content:center;width:18px;height:21px;padding:0;border:0;border-radius:0;background:transparent;font-size:15px;line-height:1;font-weight:700}.planet .tile{width:auto;height:9px;font-size:8px}.continent .tile{width:15px;height:17px;font-size:12px}.local .tile{width:20px;height:22px;font-size:16px}.tile:active{background:#354438}
 .biome-prairie{color:#a8bd8c}.biome-savane{color:#c5ae70}.biome-desert{color:#d1ad70}.biome-foret-temperee{color:#6fa878}.biome-taiga{color:#83aaa0}.biome-marecage{color:#8fae91}.biome-toundra{color:#c0d0c8}.biome-montagnes{color:#aeb5bb}.biome-littoral{color:#77b7c5}.biome-ocean{color:#5e9eb9}.biome-lac{color:#70b8d0}.biome-ruines{color:#c09ac2}
 .player{color:#f0d28d!important;background:#343022!important;outline:1px solid #b89b5e;z-index:1}
+/* Vie visuelle : animations discrètes, sans surcharge du rendu ASCII */
+.worldwrap{position:relative;isolation:isolate;transition:background-color 1.4s ease,filter 1.4s ease}
+.world{position:relative;z-index:1}
+.tile{position:relative;transform-origin:50% 85%;animation:tile-enter .42s both;animation-delay:var(--phase,0s);transition:color .5s ease,filter .5s ease}
+@keyframes tile-enter{from{opacity:.55}to{opacity:1}}
+.biome-foret-temperee,.biome-taiga{animation:tree-sway 3.8s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+@keyframes tree-sway{0%{transform:rotate(-2deg) translateY(0)}100%{transform:rotate(2deg) translateY(-1px)}}
+.biome-ocean,.biome-lac,.biome-littoral{animation:water-glint 2.7s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+@keyframes water-glint{from{filter:brightness(.88);text-shadow:0 0 0 transparent}to{filter:brightness(1.3);text-shadow:0 0 5px currentColor}}
+.biome-prairie,.biome-savane{animation:grass-wave 4.5s ease-in-out infinite alternate;animation-delay:var(--phase,0s)}
+@keyframes grass-wave{from{transform:translateY(0)}to{transform:translateY(-1px)}}
+.tile.animal-herbivore{color:#e1c47c!important;text-shadow:0 0 5px #d5b66b;animation:animal-step 1.1s ease-in-out infinite}
+.tile.animal-predator{color:#e28c75!important;text-shadow:0 0 6px #d85c48;animation:predator-prowl 1.7s ease-in-out infinite}
+@keyframes animal-step{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.12)}}
+@keyframes predator-prowl{0%,100%{transform:translateX(-1px)}50%{transform:translateX(1px) scale(1.1)}}
+.player{animation:player-pulse 2s ease-in-out infinite!important}
+@keyframes player-pulse{0%,100%{box-shadow:0 0 0 0 #e2c17b22}50%{box-shadow:0 0 9px 2px #e2c17b66}}
+.worldwrap.rain::after,.worldwrap.storm::after,.worldwrap.snow::after,.worldwrap.fog::after{content:"";position:absolute;inset:-35%;z-index:2;pointer-events:none;opacity:.55}
+.worldwrap.rain::after,.worldwrap.storm::after{background:repeating-linear-gradient(108deg,transparent 0 12px,#a9c9d955 13px,#a9c9d955 14px,transparent 15px 25px);animation:rain-fall .42s linear infinite}
+.worldwrap.storm::after{opacity:.8;animation-duration:.25s}
+@keyframes rain-fall{from{transform:translate3d(-5%, -8%,0)}to{transform:translate3d(5%, 8%,0)}}
+.worldwrap.snow::after{background-image:radial-gradient(circle,#e8f0f0 1px,transparent 2px),radial-gradient(circle,#dce8e8 1.5px,transparent 2.5px);background-size:29px 37px,53px 61px;background-position:0 0,18px 20px;animation:snow-drift 5s linear infinite;opacity:.65}
+@keyframes snow-drift{from{transform:translateY(-8%) translateX(-1%)}to{transform:translateY(8%) translateX(3%)}}
+.worldwrap.fog::after{background:linear-gradient(110deg,transparent,#c2d0c022 35%,#dce5df55 52%,transparent 75%);background-size:220% 100%;animation:fog-drift 9s ease-in-out infinite alternate;opacity:.75}
+@keyframes fog-drift{from{background-position:0 0}to{background-position:100% 0}}
+.worldwrap.night{background:#030812}
+.worldwrap.night .tile{filter:brightness(.67) saturate(.82)}
+.worldwrap.night .tile.player{filter:brightness(1.15);box-shadow:0 0 8px #f0d28d66}
+.worldwrap.dawn{background:#17131b}
+.worldwrap.dusk{background:#1c1110}
+@media(prefers-reduced-motion:reduce){.tile,.worldwrap::after{animation:none!important;transition:none!important}}
+
 .zoombar{display:flex;align-items:center;gap:5px}.zoombar button{min-width:34px;padding:5px;font-size:17px}.zoombar b{font-size:10px;color:var(--gold);min-width:76px;text-align:center}.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:170px;margin:8px auto 0}.controls button{font-size:13px;min-height:34px}
 .actions,.builds{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.builds{grid-template-columns:repeat(2,1fr);margin-top:7px}.actions button,.builds button{min-height:42px}
 .bar{height:5px;background:#080c09;border:1px solid #2b3a30;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--green)}
@@ -36,6 +68,12 @@ function biomeClass(c){return "biome-"+(c.waterway?"littoral":c.waterKind==="lak
 function glyph(c,isPlayer=false){if(isPlayer)return "@";if(mapZoom===2&&c.predators>0)return "w";if(mapZoom===2&&c.fauna>=3)return "a";if(c.b)return ({hut:"H",farm:"F",sawmill:"S",mine:"M"})[c.b]||"+";if(c.waterway||c.t==="water")return "~";if(c.t==="rock")return "^";if(c.t==="ruin")return "%";if(c.t==="forest")return "T";if(c.biome==="Forêt tempérée"||c.biome==="Taïga")return c.trees>0?"T":".";if(c.biome==="Désert")return ":";if(c.biome==="Marécage")return ";";if(c.biome==="Toundra")return "*";if(c.biome==="Savane")return '"';if(c.biome==="Littoral")return ",";return "."}
 function render(){
  let el=$("world");el.innerHTML="";
+ const localClimate=FrontieresEco.weatherAt(cell(),S.day,S.seed||1);
+ const wrap=el.parentElement;
+ const timeClass=S.hour>=21||S.hour<5?"night":S.hour>=5&&S.hour<7?"dawn":S.hour>=18&&S.hour<21?"dusk":"day";
+ const weatherClass=localClimate.type==="Pluie"||localClimate.type==="Averses"?"rain":localClimate.type==="Orage"?"storm":localClimate.type==="Neige"?"snow":localClimate.type==="Brouillard"?"fog":"clear";
+ wrap.className="worldwrap "+timeClass+" "+weatherClass;
+
  const size=mapZoom===0?3:mapZoom===1?2:1,cols=mapZoom===0?48:mapZoom===1?24:15,rows=mapZoom===0?24:mapZoom===1?12:15;
  el.className="world "+(mapZoom===0?"planet":mapZoom===1?"continent":"local");
  const startX=mapZoom===0?0:mapZoom===1?mapCenterX-24:mapCenterX-Math.floor(VIEW/2);
@@ -52,6 +90,10 @@ function render(){
    const biome=Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];
    const c=river?group.find(z=>z.waterway):water?group.find(z=>z.t==="water"):group.find(z=>z.biome===biome)||group[0];
    const b=document.createElement("button");b.className="tile "+biomeClass(c);
+   b.style.setProperty("--phase","-"+(((gx*7+gy*3)%13)*.19).toFixed(2)+"s");
+   if(mapZoom===2&&c.predators>0)b.classList.add("animal-predator");
+   else if(mapZoom===2&&c.fauna>0)b.classList.add("animal-herbivore");
+
    const px=Math.floor(S.x/size),py=Math.floor(S.y/size);
    const gxWorld=mapZoom===0?gx:mapZoom===1?startX+gx*size: x0;
    const gyWorld=mapZoom===0?gy:mapZoom===1?startY+gy*size:y0;
@@ -71,7 +113,7 @@ function render(){
  ["wood","stone","ore","food"].forEach(k=>$(k).textContent=S[k]);
  $("clock").textContent="JOUR "+S.day+" · "+String(S.hour).padStart(2,"0")+"H · "+(S.hour>=6&&S.hour<20?"JOUR":"NUIT");
  $("xy").textContent=(S.x+1)+", "+(S.y+1);
- let climate=FrontieresEco.weatherAt(cell(),S.day,S.seed||1);
+ let climate=localClimate;
  $("season").textContent=climate.season+" · ANNÉE "+climate.year;$("weather").textContent=climate.type;$("temperature").textContent=climate.temperature+" °C";
  $("climate").textContent=cell().biome+" · HUMIDITÉ "+Math.round(cell().moisture*100)+"% · SOL "+cell().soil;
  let eco=S.eco||ecoTotals();$("wildlife").textContent=eco.herb+" herbivores · "+eco.pred+" prédateurs";$("ecoDetail").textContent=eco.trees+" arbres · populations migrantes et dépendantes de la végétation";

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#142019"><title>FRONTIÈRES — Les mondes oubliés</title><script src="./ecosystem.js?v=20261102-migration07"></script>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#142019"><title>FRONTIÈRES — Les mondes oubliés</title><script src="./ecosystem.js?v=20261102-ecology08"></script>
 <style>
 :root{color-scheme:dark;--bg:#090d0b;--p:#101713;--p2:#18221b;--line:#34453a;--txt:#c8d4c9;--muted:#849487;--gold:#e2c17b;--green:#9dbb8d}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:13px ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
@@ -68,7 +68,7 @@ button{background:var(--p2);border:1px solid #405447;border-radius:2px;color:var
 <footer><button id="save">[ SAUVEGARDER ]</button><button id="reset">[ NOUVELLE PARTIE ]</button><button id="speed">Vitesse ×1</button></footer>
 </main><script>
 const W=144,H=72,VIEW=15,$=id=>document.getElementById(id), defs={hut:{n:"Abri",e:"🏠",w:5,s:3},farm:{n:"Ferme",e:"🌱",w:6,s:4},sawmill:{n:"Scierie",e:"🪚",w:8,s:4},mine:{n:"Mine",e:"⛏️",w:6,s:6}};
-let S,paused=false,speed=1,timer,mapZoom=0,mapCenterX=72,mapCenterY=36,subX=7,subY=7;
+let S,ecologyBusy=false,paused=false,speed=1,timer,mapZoom=0,mapCenterX=72,mapCenterY=36,subX=7,subY=7;
 function rng(n){let x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)}
 function fresh(){let seed=Math.floor(Math.random()*999999)+1,map=FrontieresEco.generate(W,H,seed),sx=Math.floor(W/2),sy=Math.floor(H/2),best=null,dist=Infinity;for(let y=0;y<H;y++)for(let x=0;x<W;x++){let c=map[y][x],d=Math.abs(x-sx)+Math.abs(y-sy);if(c.t!=="water"&&c.t!=="rock"&&d<dist){best={x,y};dist=d}}S={map,seed,x:best.x,y:best.y,wood:14,stone:10,ore:3,food:24,pop:4,mood:82,day:1,hour:8,log:[],jobs:{},buildings:[],eco:null};mapZoom=0;mapCenterX=best.x;mapCenterY=best.y;say("Jour 1 — Les survivants établissent un campement sur une planète inconnue.");render()}
 function say(t){S.log.unshift(t);S.log=S.log.slice(0,30);$("log").innerHTML=S.log.map(x=>"<div>"+x+"</div>").join("")}
@@ -76,7 +76,7 @@ function cell(x=S.x,y=S.y){return S.map[y]?.[x]}
 function biomeClass(c){return "biome-"+(c.waterway?"littoral":c.waterKind==="lake"?"lac":c.t==="water"?"ocean":c.t==="ruin"?"ruines":(c.biome||"prairie").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ /g,"-"))}
 function glyph(c,isPlayer=false){if(isPlayer)return "@";if(mapZoom===2&&c.predators>0)return "W";if(mapZoom===2&&c.fauna>0)return c.fauna>=4?"A":"a";if(c.b)return ({hut:"H",farm:"F",sawmill:"S",mine:"M"})[c.b]||"+";if(c.waterway||c.t==="water")return "~";if(c.t==="rock")return "^";if(c.t==="ruin")return "%";if(c.t==="forest")return "T";if(c.biome==="Forêt tempérée"||c.biome==="Taïga")return c.trees>0?"T":".";if(c.biome==="Désert")return ":";if(c.biome==="Marécage")return ";";if(c.biome==="Toundra")return "*";if(c.biome==="Savane")return '"';if(c.biome==="Littoral")return ",";return "."}
 function subKey(){return S.x+","+S.y}
-function subData(){if(!S.subzones)S.subzones={};const key=subKey();if(!S.subzones[key])S.subzones[key]={};const data=S.subzones[key];if(!Array.isArray(data.base)||data.base.length!==225){if(data.base&&data.base.length===25){const old={...data};for(let i=0;i<25;i++)delete data[i];for(let i=0;i<25;i++)if(Object.prototype.hasOwnProperty.call(old,i))data[(Math.floor(i/5)*3+1)*15+(i%5)*3+1]=old[i]}const d=FrontieresEco.detailAt(cell(),S.x,S.y,S.seed||1);data.base=d.tiles.flat();}return data}
+function subData(){if(!S.subzones)S.subzones={};const key=subKey();if(!S.subzones[key])S.subzones[key]={};const data=S.subzones[key];if(!Array.isArray(data.base)||data.base.length!==225){if(data.base&&data.base.length===25){const old={...data};for(let i=0;i<25;i++)delete data[i];for(let i=0;i<25;i++)if(Object.prototype.hasOwnProperty.call(old,i))data[(Math.floor(i/5)*3+1)*15+(i%5)*3+1]=old[i]}const d=FrontieresEco.detailAt(cell(),S.x,S.y,S.seed||1);data.base=d.tiles.flat();}return FrontieresEco.syncDetail(data,cell(),S.x,S.y,S.seed||1)}
 function subDiscover(){const data=subData();if(!Array.isArray(data.seen))data.seen=[];for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const x=subX+dx,y=subY+dy;if(x>=0&&x<15&&y>=0&&y<15&&Math.abs(dx)+Math.abs(dy)<=3&&!data.seen.includes(y*15+x))data.seen.push(y*15+x)}}
 function subGlyph(i){const data=subData();return data[i]??data.base[i]}
 function refreshSubGrid(){const grid=$("detailGrid"),data=subData(),key=subKey();subDiscover();if(grid.dataset.territory!==key||grid.children.length!==225){grid.replaceChildren();for(let i=0;i<225;i++){const b=document.createElement("button");b.className="detail-tile";b.title="Sous-zone "+(i%15+1)+","+(Math.floor(i/15)+1);b.onclick=()=>subMove(i%15,Math.floor(i/15));grid.append(b)}grid.dataset.territory=key}for(let i=0;i<225;i++){const g=subGlyph(i),b=grid.children[i],k=g==="T"?"forest":g==="^"?"rock":g==="~"||g===";"?"water":g==="a"?"fauna":g==="W"?"predator":g==="t"?"plant":"";const cl="detail-tile "+k+(i===subY*15+subX?" sub-player":"");const displayClass=data.seen.includes(i)?cl:"detail-tile unexplored";if(b.className!==displayClass)b.className=displayClass;const label=i===subY*15+subX?"@":data.seen.includes(i)?g:"?";if(b.textContent!==label)b.textContent=label}}
@@ -88,91 +88,32 @@ function ecoCounts(data){
  for(let i=0;i<225;i++){const g=data[i]??data.base[i];if(g==="T"||g==="t"||g==="."||g==='"'||g===";")plants++;if(g==="a")herb++;if(g==="W")pred++}
  return {plants,herb,pred};
 }
-function migrateLocalWildlife(data){
- const originX=S.x,originY=S.y,day=S.day,edge=[];
- for(let i=0;i<225;i++){const g=data[i]??data.base[i];if(g!=="a"&&g!=="W")continue;const x=i%15,y=Math.floor(i/15);if(x===0||x===14||y===0||y===14)edge.push({i,x,y,g})}
- let moved=0;
- for(const e of edge){
-  if(rng(S.seed+day*313+e.i*97+originX*13+originY*29)>.14)continue;
-  const directions=[];if(e.x===0)directions.push([-1,0,14,e.y]);if(e.x===14)directions.push([1,0,0,e.y]);if(e.y===0)directions.push([0,-1,e.x,14]);if(e.y===14)directions.push([0,1,e.x,0]);
-  const dir=directions[Math.floor(rng(day*67+e.i)*directions.length)];if(!dir)continue;
-  const nx=(originX+dir[0]+W)%W,ny=originY+dir[1];if(ny<0||ny>=H)continue;
-  const territory=S.map[ny][nx];if(!territory||territory.t==="water"||territory.t==="rock"||territory.t==="ruin")continue;
-  const key=nx+","+ny;
-  if(!S.subzones[key])S.subzones[key]={};
-  const dest=S.subzones[key];
-  if(!Array.isArray(dest.base)||dest.base.length!==225){dest.base=FrontieresEco.detailAt(territory,nx,ny,S.seed||1).tiles.flat()}
-  const arrival=dir[3]*15+dir[2];
-  const sites=[arrival,...[arrival-1,arrival+1,arrival-15,arrival+15].filter(j=>j>=0&&j<225&&Math.abs(j%15-arrival%15)+Math.abs(Math.floor(j/15)-Math.floor(arrival/15))<=1)];
-  const site=sites.find(j=>{const g=dest[j]??dest.base[j];return g!=="~"&&g!=="^"&&g!=="a"&&g!=="W"});
-  if(site===undefined)continue;
-  data[e.i]=".";dest[site]=e.g;
-  if(e.g==="W"){if(!dest.hunger)dest.hunger={};dest.hunger[site]=data.hunger?.[e.i]??8;if(data.hunger)delete data.hunger[e.i]}
-  if(e.g==="a"){territory.fauna=(territory.fauna||0)+1;cell().fauna=Math.max(0,(cell().fauna||0)-1)}
-  else{territory.predators=(territory.predators||0)+1;cell().predators=Math.max(0,(cell().predators||0)-1)}
-  moved++;
- }
- return moved;
-}
+// L'effectif est simulé une seule fois par le moteur planétaire.
 function localEcologyDay(){
- if(!S.subzones)return 0;
- const data=subData(),weather=FrontieresEco.weatherAt(cell(),S.day,S.seed||1),wet=/Pluie|Averses|Orage|Neige/.test(weather.type),growing=S.day%120<65;
- const old=Array.from({length:225},(_,i)=>subGlyph(i)),next=old.slice();
- const animals=[];for(let i=0;i<225;i++)if(old[i]==="a"||old[i]==="W")animals.push(i);
- const near=i=>{const x=i%15,y=Math.floor(i/15),a=[];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const xx=x+dx,yy=y+dy;if(xx>=0&&xx<15&&yy>=0&&yy<15)a.push(yy*15+xx)}return a};
- const pass=g=>g!=="~"&&g!=="^"&&g!=="a"&&g!=="W";
- const plant=g=>g==="T"||g==="t"||g==="."||g==='"'||g===";";
- if(!data.hunger)data.hunger={};
- let births=0,hunts=0,starvation=0;
- // Independent seasonal vegetation regeneration.
- for(let i=0;i<225;i++){const g=old[i],r=rng(S.seed+S.day*997+i*71+S.x*31+S.y*47);
-  if(g===":"&&wet&&growing&&r<.035)next[i]=".";
-  else if(g==="."&&wet&&growing&&r<.045)next[i]="t";
-  else if(g==="t"&&wet&&growing&&r<.018)next[i]="T";
-  else if(g==="t"&&!wet&&!growing&&r<.025)next[i]=".";
-  else if(g==="T"&&!wet&&!growing&&r<.004)next[i]="t";
+ if(!S.subzones?.[subKey()])return 0;
+ const data=subData(),weather=FrontieresEco.weatherAt(cell(),S.day,S.seed||1);
+ const wet=/Pluie|Averses|Orage|Neige/.test(weather.type),growing=["Printemps","Été"].includes(weather.season);
+ let changes=0;
+ for(let i=0;i<225;i++){
+  const g=data[i]??data.base[i],r=rng(S.seed+S.day*997+i*71+S.x*31+S.y*47);
+  let next=g;
+  if(g===":"&&wet&&growing&&r<.035)next=".";
+  else if(g==="."&&wet&&growing&&r<.045)next="t";
+  else if(g==="t"&&wet&&growing&&r<.018)next="T";
+  else if(g==="t"&&!wet&&!growing&&r<.025)next=".";
+  else if(g==="T"&&!wet&&!growing&&r<.004)next="t";
+  if(next!==g){data[i]=next;changes++;}
  }
- const predatorCount=animals.filter(i=>old[i]==="W").length;
- const herbCount=animals.filter(i=>old[i]==="a").length;
- // Process predators first. Search nearest prey within 5 cells; chase one cell per day.
- const occupied=new Set();
- for(const i of animals.filter(i=>old[i]==="W")){
-  if(next[i]!=="W"||occupied.has(i))continue;
-  let energy=(data.hunger[i]??9)-1;
-  const x=i%15,y=Math.floor(i/15);
-  const prey=[];for(let j=0;j<225;j++)if(next[j]==="a"){const dist=Math.abs(j%15-x)+Math.abs(Math.floor(j/15)-y);if(dist<=5)prey.push({j,dist})}
-  prey.sort((a,b)=>a.dist-b.dist);
-  const target=prey[0],adj=near(i);
-  let dest=i;
-  if(target&&target.dist===1){dest=target.j;next[i]=".";next[dest]="W";energy=12;hunts++}
-  else {
-   const options=adj.filter(j=>pass(next[j])&&!occupied.has(j));
-   if(options.length){options.sort((a,b)=>{const score=j=>target?Math.abs(j%15-target.j%15)+Math.abs(Math.floor(j/15)-Math.floor(target.j/15)):rng(S.day*23+j*17+S.seed)*8;return score(a)-score(b)});dest=options[0];next[i]=".";next[dest]="W"}
-  }
-  delete data.hunger[i];
-  if(energy<=0){next[dest]=".";starvation++}else{data.hunger[dest]=energy;occupied.add(dest)}
- }
- // Herbivores reproduce only with sufficient forage and low local crowding.
- const herbPositions=animals.filter(i=>old[i]==="a");
- for(const i of herbPositions){
-  if(next[i]!=="a"||occupied.has(i))continue;
-  const adj=near(i),food=adj.filter(j=>plant(next[j])),r=rng(S.day*173+i*37+S.seed);
-  const options=food.length?food:adj.filter(j=>pass(next[j]));
-  let dest=i;
-  if(options.length){dest=options[Math.floor(r*options.length)];next[i]=".";next[dest]="a"}
-  occupied.add(dest);
-  const crowd=near(dest).filter(j=>next[j]==="a").length;
-  if(food.length&&herbCount<Math.max(6,Math.floor(ecoCounts(data).plants/9))&&crowd<2&&rng(S.day*53+i)<.018){
-   const spot=near(dest).find(j=>pass(next[j])&&!occupied.has(j));if(spot!==undefined){next[spot]="a";occupied.add(spot);births++}
-  }
-  if(!food.length&&r<.035){next[dest]=":";starvation++}
- }
- let changes=0;for(let i=0;i<225;i++)if(next[i]!==old[i]){data[i]=next[i];changes++}
- const migrations=migrateLocalWildlife(data);
- data.lastEco={day:S.day,births,hunts,starvation,migrations,changes:changes+migrations};
- S.ecoLocalChanges=(S.ecoLocalChanges||0)+changes+migrations;
- if(changes&&mapZoom===2)refreshSubGrid();
- return changes+migrations;
+ changes+=FrontieresEco.animateDetail(data,S.day,S.seed||1);
+ data.lastEco={day:S.day,changes};
+ S.ecoLocalChanges=(S.ecoLocalChanges||0)+changes;
+ return changes;
+}
+function ecologyDay(){
+ S.eco=FrontieresEco.advance(S.map,S.day,S.x,S.y,S.seed||1);
+ const changes=localEcologyDay();
+ for(const event of S.eco.events||[])say(event);
+ return changes;
 }
 function render(){
  let el=$("world");el.innerHTML="";
@@ -222,7 +163,7 @@ function render(){
   const d=FrontieresEco.detailAt(cell(),S.x,S.y,S.seed||1);
   refreshSubGrid();
   $("ecoStatus").textContent="Jour "+S.day+" · "+(S.ecoLocalChanges||0)+" transformations observées";
-  const pop=ecoCounts(subData()),last=subData().lastEco||{};$("ecoPop").textContent="Végétation "+pop.plants+" · Herbivores "+pop.herb+" · Prédateurs "+pop.pred+" · Chasses "+(last.hunts||0)+" · Naissances "+(last.births||0)+" · Morts "+(last.starvation||0)+" · Migrations "+(last.migrations||0)+" (dernier jour)";
+  const pop=ecoCounts(subData()),eco=S.eco||{};$("ecoPop").textContent="Végétation "+pop.plants+" · Herbivores "+cell().fauna+" · Prédateurs "+cell().predators+" · Chasses (monde) "+(eco.hunts||0)+" · Naissances (monde) "+(eco.births||0)+" · Morts (monde) "+(eco.deaths||0)+" · Migrations (monde) "+((eco.migrations?.herbivores||0)+(eco.migrations?.predators||0))+" (dernier jour)";
   $("detailSummary").textContent=d.trees+" zones boisées · "+d.rocks+" zones rocheuses · "+d.clearings+" clairières · "+d.wetlands+" zones humides. Chaque sous-zone fait environ "+d.subzoneKm+" km de côté à l’équateur. Touchez une case ou utilisez les flèches pour vous déplacer.";
  }
  $("zoomOut").disabled=mapZoom===0;$("zoomIn").disabled=mapZoom===2;
@@ -233,7 +174,7 @@ function render(){
  let climate=localClimate;
  $("season").textContent=climate.season+" · ANNÉE "+climate.year;$("weather").textContent=climate.type;$("temperature").textContent=climate.temperature+" °C";
  $("climate").textContent=cell().biome+" · HUMIDITÉ "+Math.round(cell().moisture*100)+"% · SOL "+cell().soil;
- let eco=S.eco||ecoTotals();$("wildlife").textContent=eco.herb+" herbivores · "+eco.pred+" prédateurs";$("ecoDetail").textContent=eco.trees+" arbres · populations migrantes et dépendantes de la végétation";
+ let eco=S.eco||FrontieresEco.populationTotals(S.map);$("wildlife").textContent=eco.herb+" herbivores · "+eco.pred+" prédateurs";$("ecoDetail").textContent=eco.trees+" arbres · populations migrantes et dépendantes de la végétation";
  $("biomeLegend").textContent="@ VOUS · T FORÊT · ^ MONTAGNE · ~ OCÉAN / FLEUVE · % RUINES · : DÉSERT · * Toundra";
  $("where").textContent=cell().b?defs[cell().b].n:({forest:"Forêt",rock:"Montagne",water:cell().waterKind==="lake"?"Lac":cell().waterKind==="river"?"Rivière":"Océan",ruin:"Ruines anciennes",sand:"Terrain sableux",grass:"Terrain herbeux"}[cell().t]);
  $("population").textContent="POPULATION : "+S.pop;$("mood").textContent=S.mood+" %";$("moodbar").style.width=S.mood+"%";
@@ -254,37 +195,27 @@ $("inspect").onclick=()=>{if(mapZoom===2)return subInspect();let c=cell();note((
 $("build").onclick=()=>{$("builds").hidden=!$("builds").hidden};
 document.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{let k=b.dataset.b,d=defs[k],c=cell();if(c.b||["water","rock","ruin"].includes(c.t))return note("Terrain inadapté.");if(S.wood<d.w||S.stone<d.s)return note("Ressources insuffisantes.");S.wood-=d.w;S.stone-=d.s;c.b=k;S.buildings.push(k);say(d.n+" construit(e).");note(d.n+" construit(e) !");render()});
 function wildlifeStep(){
- if(paused||!S||!S.map)return;
+ if(paused||ecologyBusy||!S?.map||mapZoom!==2||!S.subzones?.[subKey()])return;
  wildlifeClock++;
- let changed=false;
- const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
- // Quelques individus se déplacent à chaque impulsion : les effectifs restent constants.
- for(let n=0;n<4;n++){
-  const idx=Math.floor(rng(wildlifeClock*97+n*13+S.seed)*W*H);
-  const x=idx%W,y=Math.floor(idx/W),src=S.map[y][x];
-  const predator=(wildlifeClock+n)%5===0&&src.predators>0;
-  const kind=predator?"predators":"fauna";
-  if(!(src[kind]>0))continue;
-  let choices=[];
-  for(const [dx,dy] of dirs){
-   const nx=(x+dx+W)%W,ny=y+dy;
-   if(ny<0||ny>=H)continue;
-   const dst=S.map[ny][nx];
-   if(dst.t==="water"||dst.t==="rock"||dst.t==="ruin"||dst.b)continue;
-   const habitat=predator?(dst.fauna*5+(dst.biome==="Forêt tempérée"?3:0)+dst.moisture):(dst.vegetation*.09+dst.moisture*5+dst.fauna*.35);
-   choices.push({dst,score:habitat+rng(wildlifeClock*31+nx*7+ny*19+n)*2});
-  }
-  if(!choices.length)continue;
-  choices.sort((a,b)=>b.score-a.score);
-  const target=choices[0].dst;
-  src[kind]--;target[kind]=(target[kind]||0)+1;changed=true;
- }
- if(changed&&mapZoom===2)render();
+ if(FrontieresEco.animateDetail(subData(),wildlifeClock,S.seed||1))refreshSubGrid();
 }
-$("ecoAdvance").onclick=()=>{if(mapZoom!==2){mapZoom=2;render()}subData();let changes=0;for(let n=0;n<30;n++){S.day++;changes+=localEcologyDay()}render();note("Simulation locale : 30 jours écoulés, "+changes+" transformations de terrain ou déplacements d’animaux.");};
-function tick(){if(paused)return;S.hour++;if(S.hour>=24){S.hour=0;S.day++;S.eco=FrontieresEco.advance(S.map,S.day,S.x,S.y,S.seed||1);localEcologyDay();for(const event of S.eco.events||[])say(event);let f=S.buildings.filter(x=>x==="farm").length,sw=S.buildings.filter(x=>x==="sawmill").length,m=S.buildings.filter(x=>x==="mine").length;let jobs=assign();let farmers=jobs.find(x=>x.n==="🌱 Cultivateurs")?.count||0,woodcut=jobs.find(x=>x.n==="🪚 Bûcherons")?.count||0,mining=jobs.find(x=>x.n==="⛏ Mineurs")?.count||0;S.food+=farmers*4-S.pop*.6;S.wood+=woodcut*2;S.ore+=mining;if(S.food<0){S.food=0;S.mood=Math.max(0,S.mood-10);say("Pénurie alimentaire : le moral s'effondre.")}else S.mood=Math.min(100,S.mood+1);if(S.food>S.pop*4&&S.buildings.includes("hut")&&S.pop<24&&rng(S.day)>.72){S.pop++;say("Un nouvel arrivant rejoint la colonie.")}if(S.day%3===0)say("Jour "+S.day+" — la colonie poursuit son développement.");render()}else render()}
+$("ecoAdvance").onclick=async()=>{
+ if(ecologyBusy)return;
+ ecologyBusy=true;$("ecoAdvance").disabled=true;
+ const state=S;
+ try{
+  if(mapZoom!==2){mapZoom=2;render()}subData();let changes=0;
+  for(let n=0;n<30;n++){
+   if(S!==state)return; // Une nouvelle partie annule la simulation précédente.
+   S.day++;changes+=ecologyDay();
+   if(n%5===4){render();await new Promise(resolve=>setTimeout(resolve,0));}
+  }
+  if(S===state){render();note("Simulation écologique : 30 jours écoulés sur toute la planète, "+changes+" transformations de terrain ou déplacements d’animaux.");}
+ }finally{ecologyBusy=false;$("ecoAdvance").disabled=false;}
+};
+function tick(){if(paused||ecologyBusy)return;S.hour++;if(S.hour>=24){S.hour=0;S.day++;ecologyDay();let f=S.buildings.filter(x=>x==="farm").length,sw=S.buildings.filter(x=>x==="sawmill").length,m=S.buildings.filter(x=>x==="mine").length;let jobs=assign();let farmers=jobs.find(x=>x.n==="🌱 Cultivateurs")?.count||0,woodcut=jobs.find(x=>x.n==="🪚 Bûcherons")?.count||0,mining=jobs.find(x=>x.n==="⛏ Mineurs")?.count||0;S.food+=farmers*4-S.pop*.6;S.wood+=woodcut*2;S.ore+=mining;if(S.food<0){S.food=0;S.mood=Math.max(0,S.mood-10);say("Pénurie alimentaire : le moral s'effondre.")}else S.mood=Math.min(100,S.mood+1);if(S.food>S.pop*4&&S.buildings.includes("hut")&&S.pop<24&&rng(S.day)>.72){S.pop++;say("Un nouvel arrivant rejoint la colonie.")}if(S.day%3===0)say("Jour "+S.day+" — la colonie poursuit son développement.");render()}else render()}
 function start(){clearInterval(timer);timer=setInterval(tick,1800/speed);clearInterval(wildlifeTimer);wildlifeTimer=setInterval(wildlifeStep,1100)}
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"[ REPRENDRE ]":"Ⅱ Pause"};$("speed").onclick=()=>{speed=speed===1?2:speed===2?4:1;$("speed").textContent="Vitesse ×"+speed;start()};
 $("save").onclick=()=>{localStorage.setItem("frontieres-save",JSON.stringify(S));note("Sauvegarde enregistrée sur cet appareil.")};$("reset").onclick=()=>{if(confirm("Recommencer la partie ?")){localStorage.removeItem("frontieres-save");fresh()}};
-try{let saved=localStorage.getItem("frontieres-save");if(saved){S=JSON.parse(saved);S.seed=S.seed||Math.floor(Math.random()*999999)+1;S.map=FrontieresEco.migrate(S.map,S.seed);if(S.map.length!==H||S.map[0].length!==W){const old=S.map,expanded=FrontieresEco.generate(W,H,S.seed);if(old.length===H&&old[0].length===W/2){for(let y=0;y<H;y++)for(let x=0;x<W/2;x++){expanded[y][x*2]={...old[y][x]};expanded[y][x*2+1]={...old[y][x]};}S.x=Math.min(W-1,S.x*2);}else{for(let y=0;y<Math.min(H,old.length);y++)for(let x=0;x<Math.min(W,old[y].length);x++)expanded[y][x]={...old[y][x]};}S.map=expanded;}S.x=((S.x%W)+W)%W;S.y=Math.max(0,Math.min(H-1,S.y));mapZoom=0;mapCenterX=S.x;mapCenterY=S.y;render()}else fresh()}catch(e){fresh()}mapZoom=2;mapCenterX=S.x;mapCenterY=S.y;render();start();
+try{let saved=localStorage.getItem("frontieres-save");if(saved){S=JSON.parse(saved);S.seed=S.seed||Math.floor(Math.random()*999999)+1;S.map=FrontieresEco.migrate(S.map,S.seed);if(S.map.length!==H||S.map[0].length!==W){const old=S.map,expanded=FrontieresEco.generate(W,H,S.seed);if(old.length===H&&old[0].length===W/2){for(let y=0;y<H;y++)for(let x=0;x<W/2;x++){expanded[y][x*2]={...old[y][x]};expanded[y][x*2+1]={...old[y][x]};}S.x=Math.min(W-1,S.x*2);}else{for(let y=0;y<Math.min(H,old.length);y++)for(let x=0;x<Math.min(W,old[y].length);x++)expanded[y][x]={...old[y][x]};}S.map=expanded;}S.eco={...S.eco,...FrontieresEco.populationTotals(S.map)};S.x=((S.x%W)+W)%W;S.y=Math.max(0,Math.min(H-1,S.y));mapZoom=0;mapCenterX=S.x;mapCenterY=S.y;render()}else fresh()}catch(e){fresh()}mapZoom=2;mapCenterX=S.x;mapCenterY=S.y;render();start();
 </script></body></html>

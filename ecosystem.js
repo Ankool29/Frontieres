@@ -47,7 +47,7 @@
           vegetation:t==="forest"?65+Math.round(m*30):t==="grass"?20+Math.round(m*38):t==="sand"?3:0,
           trees:t==="forest"?5+Math.floor(hash(x,y,seed+9)*8):0,
           fauna:["Forêt tempérée","Taïga","Prairie","Savane"].includes(biome)?1+Math.floor(hash(x,y,seed+13)*4):0,
-          explored:false,soil:m>.72?"tourbeux":m>.62?"fertile":e>.50?"rocheux":m<.22?"sableux":"ordinaire",geology:e>.50?(geo>.66?"granite":geo>.33?"basalte":"métamorphique"):(geo>.55?"calcaire":geo>.28?"grès":"sédimentaire"),mineral:mineralRoll>.91?(geo>.5?"fer": "cuivre"):mineralRoll>.84?"charbon":null,mineralAmount:mineralRoll>.84?1+Math.floor(hash(x,y,seed+83)*5):0,floodplain:false,waterway:false,
+          explored:false,soil:m>.72?"tourbeux":m>.62?"fertile":e>.50?"rocheux":m<.22?"sableux":"ordinaire",geology:e>.50?(geo>.66?"granite":geo>.33?"basalte":"métamorphique"):(geo>.55?"calcaire":geo>.28?"grès":"sédimentaire"),mineral:mineralRoll>.94?(geo>.5?"fer": "cuivre"):mineralRoll>.89?"charbon":null,mineralAmount:mineralRoll>.89?1+Math.floor(hash(x,y,seed+83)*5):0,floodplain:false,waterway:false,
           waterKind:t==="water"?"ocean":null,flow:0,downstream:null});
       }
       map.push(row);

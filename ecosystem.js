@@ -197,7 +197,20 @@
       if(g==='T')trees++;if(g==='^')rocks++;if(g==='~'||g===';')wetlands++;if(g==='.')clearings++;row.push(g);
     }out.push(row)}
     if(!water&&!mountain&&tile.fauna>0){const n=Math.min(7,Math.ceil(tile.fauna/2));for(let i=0;i<n;i++){const gx=Math.floor(hash(x+i*3,y+i*5,seed+401)*15),gy=Math.floor(hash(x+i*7,y+i*2,seed+409)*15);if(out[gy][gx]!== '~'&&out[gy][gx]!=='^')out[gy][gx]='a'}}
-    if(!water&&!mountain&&tile.predators>0){const gx=Math.floor(hash(x+11,y+17,seed+419)*15),gy=Math.floor(hash(x+19,y+3,seed+421)*15);if(out[gy][gx]!=='~'&&out[gy][gx]!=='^')out[gy][gx]='W'}
+    // Seed a small shared habitat when predators occur: both species must be observable.
+    if(!water&&!mountain&&tile.predators>0){
+      let herb=out.flat().filter(g=>g==='a').length;
+      for(let k=0;k<Math.max(0,3-herb);k++){
+        for(let attempt=0;attempt<30;attempt++){
+          const gx=Math.floor(hash(x+k*31+attempt,y+k*17,seed+503)*15),gy=Math.floor(hash(x+k*11,y+attempt*29,seed+509)*15);
+          if(out[gy][gx]!=='~'&&out[gy][gx]!=='^'&&out[gy][gx]!=='a'){out[gy][gx]='a';break}
+        }
+      }
+      for(let attempt=0;attempt<30;attempt++){
+        const gx=Math.floor(hash(x+11+attempt,y+17,seed+419)*15),gy=Math.floor(hash(x+19,y+3+attempt,seed+421)*15);
+        if(out[gy][gx]!=='~'&&out[gy][gx]!=='^'&&out[gy][gx]!=='a'){out[gy][gx]='W';break}
+      }
+    }
     return {tiles:out,trees,rocks,clearings,wetlands,subzoneKm:250/15};
   }
     window.FrontieresEco = { generate, migrate, season, weatherAt, advance, detailAt };

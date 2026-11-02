@@ -8,15 +8,15 @@
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.stat{text-align:center;padding:7px 2px}.stat b{display:block;font-size:17px;color:#d6dfd4}.stat span{font-size:10px;color:var(--muted)}
 button{background:var(--p2);border:1px solid #405447;border-radius:2px;color:var(--txt);padding:8px;font:600 12px ui-monospace,SFMono-Regular,Consolas,monospace;touch-action:manipulation}button:active{background:#293a2e;color:#fff}button:disabled{opacity:.35}
 .map-toggle{width:100%;min-height:39px;margin:5px 0;background:#17251b;border:1px solid #6b886e;color:#c6dfc5;font-size:12px;font-weight:800;letter-spacing:1px}
-.worldwrap{overflow:auto;max-height:58dvh;min-height:260px;background:#050806;border:1px solid #26372c;border-radius:2px}.world{display:grid;grid-template-columns:repeat(15,18px);gap:0;width:max-content;padding:5px;margin:auto}.world.planet{grid-template-columns:repeat(48,11px)}.world.continent{grid-template-columns:repeat(24,15px)}.world.local{grid-template-columns:repeat(15,20px)}
-.tile{display:flex;align-items:center;justify-content:center;width:18px;height:21px;padding:0;border:0;border-radius:0;background:transparent;font-size:15px;line-height:1;font-weight:700}.planet .tile{width:11px;height:14px;font-size:10px}.continent .tile{width:15px;height:17px;font-size:12px}.local .tile{width:20px;height:22px;font-size:16px}.tile:active{background:#354438}
+.worldwrap{overflow:auto;max-height:58dvh;min-height:260px;background:#050806;border:1px solid #26372c;border-radius:2px}.world{display:grid;grid-template-columns:repeat(15,18px);gap:0;width:max-content;padding:5px;margin:auto}.world.planet{grid-template-columns:repeat(48,minmax(0,1fr));width:100%}.world.continent{grid-template-columns:repeat(24,15px)}.world.local{grid-template-columns:repeat(15,20px)}
+.tile{display:flex;align-items:center;justify-content:center;width:18px;height:21px;padding:0;border:0;border-radius:0;background:transparent;font-size:15px;line-height:1;font-weight:700}.planet .tile{width:auto;height:9px;font-size:8px}.continent .tile{width:15px;height:17px;font-size:12px}.local .tile{width:20px;height:22px;font-size:16px}.tile:active{background:#354438}
 .biome-prairie{color:#a8bd8c}.biome-savane{color:#c5ae70}.biome-desert{color:#d1ad70}.biome-foret-temperee{color:#6fa878}.biome-taiga{color:#83aaa0}.biome-marecage{color:#8fae91}.biome-toundra{color:#c0d0c8}.biome-montagnes{color:#aeb5bb}.biome-littoral{color:#77b7c5}.biome-ocean{color:#5e9eb9}.biome-lac{color:#70b8d0}.biome-ruines{color:#c09ac2}
 .player{color:#f0d28d!important;background:#343022!important;outline:1px solid #b89b5e;z-index:1}
 .zoombar{display:flex;align-items:center;gap:5px}.zoombar button{min-width:34px;padding:5px;font-size:17px}.zoombar b{font-size:10px;color:var(--gold);min-width:76px;text-align:center}.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:170px;margin:8px auto 0}.controls button{font-size:13px;min-height:34px}
 .actions,.builds{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.builds{grid-template-columns:repeat(2,1fr);margin-top:7px}.actions button,.builds button{min-height:42px}
 .bar{height:5px;background:#080c09;border:1px solid #2b3a30;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--green)}
 .log{height:90px;overflow:auto;font-size:11px;color:var(--muted)}.log div{padding:3px;border-bottom:1px solid #202d24}.tag{color:var(--gold)}footer{display:flex;gap:5px}footer button{flex:1}
-@media(min-width:600px){.world.local{grid-template-columns:repeat(15,24px)}.local .tile{width:24px;height:25px;font-size:17px}.world.planet{grid-template-columns:repeat(48,14px)}.planet .tile{width:14px;height:16px;font-size:12px}}
+@media(min-width:600px){.world.planet{grid-template-columns:repeat(48,minmax(0,1fr));width:100%}.planet .tile{height:15px;font-size:12px}.world.local{grid-template-columns:repeat(15,24px)}.local .tile{width:24px;height:25px;font-size:17px}.world.planet{grid-template-columns:repeat(48,14px)}.planet .tile{width:14px;height:16px;font-size:12px}}
 </style></head><body><main class="app">
 <header class="head"><div><div class="brand">FRONTIÈRES</div><div class="sub">LES MONDES OUBLIÉS · PROTOTYPE 0.2</div></div><button id="pause">[ PAUSE ]</button></header>
 <section class="stats"><div class="stat"><b id="wood">0</b><span>BOIS</span></div><div class="stat"><b id="stone">0</b><span>PIERRE</span></div><div class="stat"><b id="ore">0</b><span>MINERAI</span></div><div class="stat"><b id="food">0</b><span>VIVRES</span></div></section>
@@ -27,9 +27,9 @@ button{background:var(--p2);border:1px solid #405447;border-radius:2px;color:var
 <footer><button id="save">[ SAUVEGARDER ]</button><button id="reset">[ NOUVELLE PARTIE ]</button><button id="speed">Vitesse ×1</button></footer>
 </main><script>
 const W=144,H=72,VIEW=15,$=id=>document.getElementById(id), defs={hut:{n:"Abri",e:"🏠",w:5,s:3},farm:{n:"Ferme",e:"🌱",w:6,s:4},sawmill:{n:"Scierie",e:"🪚",w:8,s:4},mine:{n:"Mine",e:"⛏️",w:6,s:6}};
-let S,paused=false,speed=1,timer,mapZoom=0;
+let S,paused=false,speed=1,timer,mapZoom=0,mapCenterX=72,mapCenterY=36;
 function rng(n){let x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)}
-function fresh(){let seed=Math.floor(Math.random()*999999)+1,map=FrontieresEco.generate(W,H,seed),sx=Math.floor(W/2),sy=Math.floor(H/2),best=null,dist=Infinity;for(let y=0;y<H;y++)for(let x=0;x<W;x++){let c=map[y][x],d=Math.abs(x-sx)+Math.abs(y-sy);if(c.t!=="water"&&c.t!=="rock"&&d<dist){best={x,y};dist=d}}S={map,seed,x:best.x,y:best.y,wood:14,stone:10,ore:3,food:24,pop:4,mood:82,day:1,hour:8,log:[],jobs:{},buildings:[]};mapZoom=0;say("Jour 1 — Les survivants établissent un campement sur une planète inconnue.");render()}
+function fresh(){let seed=Math.floor(Math.random()*999999)+1,map=FrontieresEco.generate(W,H,seed),sx=Math.floor(W/2),sy=Math.floor(H/2),best=null,dist=Infinity;for(let y=0;y<H;y++)for(let x=0;x<W;x++){let c=map[y][x],d=Math.abs(x-sx)+Math.abs(y-sy);if(c.t!=="water"&&c.t!=="rock"&&d<dist){best={x,y};dist=d}}S={map,seed,x:best.x,y:best.y,wood:14,stone:10,ore:3,food:24,pop:4,mood:82,day:1,hour:8,log:[],jobs:{},buildings:[]};mapZoom=0;mapCenterX=best.x;mapCenterY=best.y;say("Jour 1 — Les survivants établissent un campement sur une planète inconnue.");render()}
 function say(t){S.log.unshift(t);S.log=S.log.slice(0,30);$("log").innerHTML=S.log.map(x=>"<div>"+x+"</div>").join("")}
 function cell(x=S.x,y=S.y){return S.map[y]?.[x]}
 function biomeClass(c){return "biome-"+(c.waterway?"littoral":c.waterKind==="lake"?"lac":c.t==="water"?"ocean":c.t==="ruin"?"ruines":(c.biome||"prairie").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ /g,"-"))}
@@ -38,8 +38,8 @@ function render(){
  let el=$("world");el.innerHTML="";
  const size=mapZoom===0?3:mapZoom===1?2:1,cols=mapZoom===0?48:mapZoom===1?24:15,rows=mapZoom===0?24:mapZoom===1?12:15;
  el.className="world "+(mapZoom===0?"planet":mapZoom===1?"continent":"local");
- const startX=mapZoom===0?0:mapZoom===1?Math.floor(S.x/2)-12: S.x-Math.floor(VIEW/2);
- const startY=mapZoom===0?0:mapZoom===1?Math.floor(S.y/2)-6: S.y-Math.floor(VIEW/2);
+ const startX=mapZoom===0?0:mapZoom===1?mapCenterX-24:mapCenterX-Math.floor(VIEW/2);
+ const startY=mapZoom===0?0:mapZoom===1?mapCenterY-12:mapCenterY-Math.floor(VIEW/2);
  for(let gy=0;gy<rows;gy++)for(let gx=0;gx<cols;gx++){
    let x0=startX+gx*size,y0=startY+gy*size,group=[];
    for(let dy=0;dy<size;dy++)for(let dx=0;dx<size;dx++){
@@ -61,7 +61,7 @@ function render(){
    b.title=(river?"Cours d’eau · ":water?"Eau · ":"")+biome+" · "+(mapZoom===0?"secteur "+(gx+1)+","+(gy+1):"");
    b.onclick=()=>{
      const tx=((x0+Math.floor(size/2))%W+W)%W,ty=Math.max(0,Math.min(H-1,y0+Math.floor(size/2)));
-     if(mapZoom===2)walkTo(tx,ty);else {mapZoom=Math.min(2,mapZoom+1);walkTo(tx,ty);render();}
+     if(mapZoom===2)walkTo(tx,ty);else {mapCenterX=tx;mapCenterY=ty;mapZoom=Math.min(2,mapZoom+1);render();}
    };
    el.append(b);
  }
@@ -85,9 +85,9 @@ function note(t){$("notice").textContent=t}
 let walkId=0;
 function walkTo(tx,ty){tx=Math.max(0,Math.min(W-1,tx));ty=Math.max(0,Math.min(H-1,ty));if(cell().t==="water"){let rescue=null,rd=Infinity;for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++)if(S.map[yy][xx].t!=="water"){let d=Math.abs(xx-S.x)+Math.abs(yy-S.y);if(d<rd){rd=d;rescue={x:xx,y:yy}}}if(rescue){S.x=rescue.x;S.y=rescue.y;note("Tu étais bloqué en mer : retour automatique sur la terre ferme.")}}let start=S.y*W+S.x,goal=ty*W+tx,prev=new Int32Array(W*H);prev.fill(-2);prev[start]=-1;let q=new Int32Array(W*H),head=0,tail=0;q[tail++]=start;while(head<tail){let p=q[head++],x=p%W,y=Math.floor(p/W);let left=(x+W-1)%W,right=(x+1)%W;{let n=y*W+left;if(prev[n]===-2&&S.map[y][left].t!=="water"){prev[n]=p;q[tail++]=n}}{let n=y*W+right;if(prev[n]===-2&&S.map[y][right].t!=="water"){prev[n]=p;q[tail++]=n}}if(y>0){let n=p-W;if(prev[n]===-2&&S.map[y-1][x].t!=="water"){prev[n]=p;q[tail++]=n}}if(y<H-1){let n=p+W;if(prev[n]===-2&&S.map[y+1][x].t!=="water"){prev[n]=p;q[tail++]=n}}}
 if(prev[goal]===-2){let best=-1,dist=Infinity;for(let i=0;i<tail;i++){let p=q[i],d=Math.min(Math.abs(p%W-tx),W-Math.abs(p%W-tx))+Math.abs(Math.floor(p/W)-ty);if(d<dist){dist=d;best=p}}goal=best;if(goal<0||goal===start){note("Aucun passage terrestre accessible dans cette direction.");return}note("Cette case est isolée par l'eau. Je te conduis jusqu'au point terrestre accessible le plus proche.")}
-let path=[];for(let p=goal;p!==start&&p!==-1;p=prev[p])path.push(p);path.reverse();if(!path.length){render();return}let id=++walkId,step=0;note("Déplacement en cours…");function advance(){if(id!==walkId||step>=path.length)return;let p=path[step++];S.x=p%W;S.y=Math.floor(p/W);cell().explored=true;render();if(step<path.length) setTimeout(advance,75);else note("Destination atteinte.")}advance()}
-function move(dx,dy){let x=(S.x+dx+W)%W,y=S.y+dy;if(!cell(x,y)||cell(x,y).t==="water")return note("Passage impossible.");S.x=x;S.y=y;cell().explored=true;render()}
-$("zoomOut").onclick=()=>{mapZoom=Math.max(0,mapZoom-1);render()};$("zoomIn").onclick=()=>{mapZoom=Math.min(2,mapZoom+1);render()};document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{if(mapOverview)return;move(...b.dataset.m.split(",").map(Number))});
+let path=[];for(let p=goal;p!==start&&p!==-1;p=prev[p])path.push(p);path.reverse();if(!path.length){render();return}let id=++walkId,step=0;note("Déplacement en cours…");function advance(){if(id!==walkId||step>=path.length)return;let p=path[step++];S.x=p%W;S.y=Math.floor(p/W);mapCenterX=S.x;mapCenterY=S.y;cell().explored=true;render();if(step<path.length) setTimeout(advance,75);else note("Destination atteinte.")}advance()}
+function move(dx,dy){let x=(S.x+dx+W)%W,y=S.y+dy;if(!cell(x,y)||cell(x,y).t==="water")return note("Passage impossible.");S.x=x;S.y=y;mapCenterX=x;mapCenterY=y;cell().explored=true;render()}
+$("zoomOut").onclick=()=>{mapCenterX=S.x;mapCenterY=S.y;mapZoom=Math.max(0,mapZoom-1);render()};$("zoomIn").onclick=()=>{mapCenterX=S.x;mapCenterY=S.y;mapZoom=Math.min(2,mapZoom+1);render()};document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{if(mapOverview)return;move(...b.dataset.m.split(",").map(Number))});
 $("gather").onclick=()=>{let c=cell();if(c.b)return note("Un bâtiment occupe cette case.");if(c.t==="forest"){S.wood+=4;c.t="grass";c.trees=Math.max(0,c.trees-3);c.vegetation=Math.max(0,c.vegetation-42);say("Une parcelle de forêt est exploitée.")}else if(c.t==="rock")S.stone+=3;else if(c.t==="sand"){S.ore++;c.t="grass"}else if(c.t==="ruin"){S.ore+=2;c.t="grass";say("Des fragments technologiques sont récupérés.")}else if(c.t==="grass")S.food+=2;else return note("Aucune ressource exploitable.");note("Ressources récoltées.");render()};
 $("inspect").onclick=()=>{let c=cell();note((c.b?defs[c.b].n+" — installation de la colonie.":c.biome+" · "+c.soil)+". Végétation : "+Math.round(c.vegetation)+"%. Arbres : "+c.trees+". Faune observée : "+c.fauna+". Humidité : "+Math.round(c.moisture*100)+"%.");};
 $("build").onclick=()=>{$("builds").hidden=!$("builds").hidden};
@@ -96,5 +96,5 @@ function tick(){if(paused)return;S.hour++;if(S.hour>=24){S.hour=0;S.day++;Fronti
 function start(){clearInterval(timer);timer=setInterval(tick,1800/speed)}
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"[ REPRENDRE ]":"Ⅱ Pause"};$("speed").onclick=()=>{speed=speed===1?2:speed===2?4:1;$("speed").textContent="Vitesse ×"+speed;start()};
 $("save").onclick=()=>{localStorage.setItem("frontieres-save",JSON.stringify(S));note("Sauvegarde enregistrée sur cet appareil.")};$("reset").onclick=()=>{if(confirm("Recommencer la partie ?")){localStorage.removeItem("frontieres-save");fresh()}};
-try{let saved=localStorage.getItem("frontieres-save");if(saved){S=JSON.parse(saved);S.seed=S.seed||Math.floor(Math.random()*999999)+1;S.map=FrontieresEco.migrate(S.map,S.seed);if(S.map.length!==H||S.map[0].length!==W){const old=S.map,expanded=FrontieresEco.generate(W,H,S.seed);if(old.length===H&&old[0].length===W/2){for(let y=0;y<H;y++)for(let x=0;x<W/2;x++){expanded[y][x*2]={...old[y][x]};expanded[y][x*2+1]={...old[y][x]};}S.x=Math.min(W-1,S.x*2);}else{for(let y=0;y<Math.min(H,old.length);y++)for(let x=0;x<Math.min(W,old[y].length);x++)expanded[y][x]={...old[y][x]};}S.map=expanded;}S.x=((S.x%W)+W)%W;S.y=Math.max(0,Math.min(H-1,S.y));mapZoom=0;render()}else fresh()}catch(e){fresh()}start();
+try{let saved=localStorage.getItem("frontieres-save");if(saved){S=JSON.parse(saved);S.seed=S.seed||Math.floor(Math.random()*999999)+1;S.map=FrontieresEco.migrate(S.map,S.seed);if(S.map.length!==H||S.map[0].length!==W){const old=S.map,expanded=FrontieresEco.generate(W,H,S.seed);if(old.length===H&&old[0].length===W/2){for(let y=0;y<H;y++)for(let x=0;x<W/2;x++){expanded[y][x*2]={...old[y][x]};expanded[y][x*2+1]={...old[y][x]};}S.x=Math.min(W-1,S.x*2);}else{for(let y=0;y<Math.min(H,old.length);y++)for(let x=0;x<Math.min(W,old[y].length);x++)expanded[y][x]={...old[y][x]};}S.map=expanded;}S.x=((S.x%W)+W)%W;S.y=Math.max(0,Math.min(H-1,S.y));mapZoom=0;mapCenterX=S.x;mapCenterY=S.y;render()}else fresh()}catch(e){fresh()}start();
 </script></body></html>

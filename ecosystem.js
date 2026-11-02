@@ -39,7 +39,7 @@
     for(let y=0;y<h;y++){
       const row=[];
       for(let x=0;x<w;x++){
-        const e=elevation[y][x],m=moisture[y][x],latitude=Math.abs(y/(h-1)-.5)*2;
+        const e=elevation[y][x],m=moisture[y][x],latitude=Math.abs(y/(h-1)-.5)*2,lon=2*Math.PI*x/w,lat=(y/(h-1)-.5)*Math.PI,cl=Math.cos(lat),sx=Math.cos(lon)*cl,sy=Math.sin(lon)*cl,sz=Math.sin(lat);
         const temp=clamp(.98-latitude*.78-e*.34,0,1),geo=noise3(sx+.6,sy-.4,sz+.2,.24,seed+77),mineralRoll=hash(x,y,seed+79);
         const biome=e<.205?"Océan":e>.50?"Montagnes":temp<.22?"Toundra":m>.79&&e<.48?"Marécage":temp>.70&&m<.28?"Désert":temp<.4&&m>.46?"Taïga":m>.59?"Forêt tempérée":temp>.59?"Savane":"Prairie";
         let t=e<.205?"water":e>.50?"rock":biome==="Désert"?"sand":["Forêt tempérée","Taïga","Marécage"].includes(biome)?"forest":"grass";

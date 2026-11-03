@@ -1,0 +1,686 @@
+{
+  "description": "Trois graines, mêmes cartes 144×72, dates 1 / 49 / 241 / 481. Densités par territoire, biomasse en unités abstraites de végétation. GlyphTargets : budget de représentation sur tous les territoires terrestres, sans brouillard ni placement. null : mesure indisponible dans le moteur historique. Timings locaux indicatifs, pas une mesure Android.",
+  "before": {
+    "commit": "920a5cc7fbef62ec4f8d13617f47d7675fd94de5",
+    "sourceSha256": "4b32648dedd66e9d8c8245be75b01dcdd5e60e375bace170167434bb142fc513",
+    "scenarios": [
+      {
+        "seed": 1,
+        "dimensions": [
+          144,
+          72
+        ],
+        "checkpoints": [
+          {
+            "day": 1,
+            "herb": 3258,
+            "pred": 138,
+            "biomass": 270388,
+            "land": 6139,
+            "occupied": 1629,
+            "predOccupied": 138,
+            "meanHerbDensity": 0.5307,
+            "maxHerb": 2,
+            "maxPred": 1,
+            "glyphTargets": 3396,
+            "maxGlyphs": 3
+          },
+          {
+            "day": 49,
+            "herb": 2352,
+            "pred": 120,
+            "biomass": 188908.001,
+            "land": 6139,
+            "occupied": 1561,
+            "predOccupied": 115,
+            "meanHerbDensity": 0.3831,
+            "maxHerb": 9,
+            "maxPred": 2,
+            "glyphTargets": 2472,
+            "maxGlyphs": 10,
+            "migrations": {
+              "herbivores": 40091,
+              "predators": 2332
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 241,
+            "herb": 842,
+            "pred": 12,
+            "biomass": 226982.215,
+            "land": 6139,
+            "occupied": 683,
+            "predOccupied": 12,
+            "meanHerbDensity": 0.1372,
+            "maxHerb": 4,
+            "maxPred": 1,
+            "glyphTargets": 854,
+            "maxGlyphs": 4,
+            "migrations": {
+              "herbivores": 92611,
+              "predators": 4839
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 481,
+            "herb": 680,
+            "pred": 3,
+            "biomass": 215077.826,
+            "land": 6139,
+            "occupied": 561,
+            "predOccupied": 3,
+            "meanHerbDensity": 0.1108,
+            "maxHerb": 4,
+            "maxPred": 1,
+            "glyphTargets": 683,
+            "maxGlyphs": 4,
+            "migrations": {
+              "herbivores": 144543,
+              "predators": 5319
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          }
+        ],
+        "peakHerb": 5379,
+        "peakPred": 140,
+        "migrations": {
+          "herbivores": 144543,
+          "predators": 5319
+        },
+        "extinctions": {
+          "herbivoreDay": null,
+          "predatorDay": null
+        },
+        "flows": {
+          "births": 9451,
+          "deaths": 10447,
+          "hunts": 1717,
+          "forageGrowth": null,
+          "forageClimateLoss": null,
+          "forageConsumed": null,
+          "forageReproduction": null
+        },
+        "timing": {
+          "medianMs": 4.43,
+          "p95Ms": 9.69
+        }
+      },
+      {
+        "seed": 29,
+        "dimensions": [
+          144,
+          72
+        ],
+        "checkpoints": [
+          {
+            "day": 1,
+            "herb": 2750,
+            "pred": 112,
+            "biomass": 226986,
+            "land": 3713,
+            "occupied": 1375,
+            "predOccupied": 112,
+            "meanHerbDensity": 0.7406,
+            "maxHerb": 2,
+            "maxPred": 1,
+            "glyphTargets": 2862,
+            "maxGlyphs": 3
+          },
+          {
+            "day": 49,
+            "herb": 3586,
+            "pred": 99,
+            "biomass": 134891.435,
+            "land": 3713,
+            "occupied": 2249,
+            "predOccupied": 99,
+            "meanHerbDensity": 0.9658,
+            "maxHerb": 9,
+            "maxPred": 1,
+            "glyphTargets": 3685,
+            "maxGlyphs": 9,
+            "migrations": {
+              "herbivores": 29462,
+              "predators": 1787
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 241,
+            "herb": 1571,
+            "pred": 26,
+            "biomass": 99499.042,
+            "land": 3713,
+            "occupied": 1256,
+            "predOccupied": 26,
+            "meanHerbDensity": 0.4231,
+            "maxHerb": 4,
+            "maxPred": 1,
+            "glyphTargets": 1597,
+            "maxGlyphs": 4,
+            "migrations": {
+              "herbivores": 137712,
+              "predators": 5878
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 481,
+            "herb": 1549,
+            "pred": 6,
+            "biomass": 61722.635,
+            "land": 3713,
+            "occupied": 1205,
+            "predOccupied": 6,
+            "meanHerbDensity": 0.4172,
+            "maxHerb": 6,
+            "maxPred": 1,
+            "glyphTargets": 1555,
+            "maxGlyphs": 6,
+            "migrations": {
+              "herbivores": 266347,
+              "predators": 7102
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          }
+        ],
+        "peakHerb": 5741,
+        "peakPred": 112,
+        "migrations": {
+          "herbivores": 266347,
+          "predators": 7102
+        },
+        "extinctions": {
+          "herbivoreDay": null,
+          "predatorDay": null
+        },
+        "flows": {
+          "births": 16610,
+          "deaths": 15366,
+          "hunts": 2551,
+          "forageGrowth": null,
+          "forageClimateLoss": null,
+          "forageConsumed": null,
+          "forageReproduction": null
+        },
+        "timing": {
+          "medianMs": 3.99,
+          "p95Ms": 5.59
+        }
+      },
+      {
+        "seed": 2026,
+        "dimensions": [
+          144,
+          72
+        ],
+        "checkpoints": [
+          {
+            "day": 1,
+            "herb": 3856,
+            "pred": 148,
+            "biomass": 317647,
+            "land": 5934,
+            "occupied": 1928,
+            "predOccupied": 148,
+            "meanHerbDensity": 0.6498,
+            "maxHerb": 2,
+            "maxPred": 1,
+            "glyphTargets": 4004,
+            "maxGlyphs": 3
+          },
+          {
+            "day": 49,
+            "herb": 4089,
+            "pred": 136,
+            "biomass": 201005.296,
+            "land": 5934,
+            "occupied": 2629,
+            "predOccupied": 134,
+            "meanHerbDensity": 0.6891,
+            "maxHerb": 10,
+            "maxPred": 2,
+            "glyphTargets": 4225,
+            "maxGlyphs": 11,
+            "migrations": {
+              "herbivores": 45653,
+              "predators": 2503
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 241,
+            "herb": 1278,
+            "pred": 12,
+            "biomass": 251099.397,
+            "land": 5934,
+            "occupied": 1021,
+            "predOccupied": 12,
+            "meanHerbDensity": 0.2154,
+            "maxHerb": 6,
+            "maxPred": 1,
+            "glyphTargets": 1290,
+            "maxGlyphs": 6,
+            "migrations": {
+              "herbivores": 148268,
+              "predators": 5996
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 481,
+            "herb": 1166,
+            "pred": 0,
+            "biomass": 217043.64,
+            "land": 5934,
+            "occupied": 1020,
+            "predOccupied": 0,
+            "meanHerbDensity": 0.1965,
+            "maxHerb": 4,
+            "maxPred": 0,
+            "glyphTargets": 1166,
+            "maxGlyphs": 4,
+            "migrations": {
+              "herbivores": 264398,
+              "predators": 6394
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": 412
+            }
+          }
+        ],
+        "peakHerb": 6963,
+        "peakPred": 148,
+        "migrations": {
+          "herbivores": 264398,
+          "predators": 6394
+        },
+        "extinctions": {
+          "herbivoreDay": null,
+          "predatorDay": 412
+        },
+        "flows": {
+          "births": 15553,
+          "deaths": 16131,
+          "hunts": 2260,
+          "forageGrowth": null,
+          "forageClimateLoss": null,
+          "forageConsumed": null,
+          "forageReproduction": null
+        },
+        "timing": {
+          "medianMs": 4.7,
+          "p95Ms": 7.09
+        }
+      }
+    ]
+  },
+  "after": {
+    "sourceSha256": "e025e6ed6e5b43fde1209aa16bec0fd4fa93e7a96d31e0d2639352c303545e3a",
+    "scenarios": [
+      {
+        "seed": 1,
+        "dimensions": [
+          144,
+          72
+        ],
+        "checkpoints": [
+          {
+            "day": 1,
+            "herb": 3258,
+            "pred": 138,
+            "biomass": 270388,
+            "land": 6139,
+            "occupied": 1629,
+            "predOccupied": 138,
+            "meanHerbDensity": 0.5307,
+            "maxHerb": 2,
+            "maxPred": 1,
+            "glyphTargets": 1767,
+            "maxGlyphs": 2
+          },
+          {
+            "day": 49,
+            "herb": 1574,
+            "pred": 117,
+            "biomass": 229636.327,
+            "land": 6139,
+            "occupied": 1333,
+            "predOccupied": 114,
+            "meanHerbDensity": 0.2564,
+            "maxHerb": 5,
+            "maxPred": 2,
+            "glyphTargets": 1447,
+            "maxGlyphs": 2,
+            "migrations": {
+              "herbivores": 24500,
+              "predators": 2512
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 241,
+            "herb": 556,
+            "pred": 13,
+            "biomass": 243010.819,
+            "land": 6139,
+            "occupied": 490,
+            "predOccupied": 13,
+            "meanHerbDensity": 0.0906,
+            "maxHerb": 4,
+            "maxPred": 1,
+            "glyphTargets": 503,
+            "maxGlyphs": 2,
+            "migrations": {
+              "herbivores": 61760,
+              "predators": 4794
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 481,
+            "herb": 755,
+            "pred": 0,
+            "biomass": 214642.138,
+            "land": 6139,
+            "occupied": 614,
+            "predOccupied": 0,
+            "meanHerbDensity": 0.123,
+            "maxHerb": 5,
+            "maxPred": 0,
+            "glyphTargets": 614,
+            "maxGlyphs": 1,
+            "migrations": {
+              "herbivores": 94224,
+              "predators": 5194
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": 381
+            }
+          }
+        ],
+        "peakHerb": 3626,
+        "peakPred": 139,
+        "migrations": {
+          "herbivores": 94224,
+          "predators": 5194
+        },
+        "extinctions": {
+          "herbivoreDay": null,
+          "predatorDay": 381
+        },
+        "flows": {
+          "births": 3157,
+          "deaths": 4347,
+          "hunts": 1451,
+          "forageGrowth": 490527.774,
+          "forageClimateLoss": 66969.153,
+          "forageConsumed": 441720.484,
+          "forageReproduction": 37584
+        },
+        "timing": {
+          "medianMs": 4.53,
+          "p95Ms": 8.45
+        }
+      },
+      {
+        "seed": 29,
+        "dimensions": [
+          144,
+          72
+        ],
+        "checkpoints": [
+          {
+            "day": 1,
+            "herb": 2750,
+            "pred": 112,
+            "biomass": 226986,
+            "land": 3713,
+            "occupied": 1375,
+            "predOccupied": 112,
+            "meanHerbDensity": 0.7406,
+            "maxHerb": 2,
+            "maxPred": 1,
+            "glyphTargets": 1487,
+            "maxGlyphs": 2
+          },
+          {
+            "day": 49,
+            "herb": 2240,
+            "pred": 85,
+            "biomass": 168578.159,
+            "land": 3713,
+            "occupied": 1839,
+            "predOccupied": 83,
+            "meanHerbDensity": 0.6033,
+            "maxHerb": 4,
+            "maxPred": 2,
+            "glyphTargets": 1922,
+            "maxGlyphs": 2,
+            "migrations": {
+              "herbivores": 19898,
+              "predators": 1969
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 241,
+            "herb": 1149,
+            "pred": 28,
+            "biomass": 125714.618,
+            "land": 3713,
+            "occupied": 1006,
+            "predOccupied": 28,
+            "meanHerbDensity": 0.3095,
+            "maxHerb": 4,
+            "maxPred": 1,
+            "glyphTargets": 1034,
+            "maxGlyphs": 2,
+            "migrations": {
+              "herbivores": 92465,
+              "predators": 5878
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 481,
+            "herb": 1562,
+            "pred": 5,
+            "biomass": 129002.517,
+            "land": 3713,
+            "occupied": 1242,
+            "predOccupied": 5,
+            "meanHerbDensity": 0.4207,
+            "maxHerb": 10,
+            "maxPred": 1,
+            "glyphTargets": 1248,
+            "maxGlyphs": 2,
+            "migrations": {
+              "herbivores": 152690,
+              "predators": 6812
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          }
+        ],
+        "peakHerb": 3312,
+        "peakPred": 112,
+        "migrations": {
+          "herbivores": 152690,
+          "predators": 6812
+        },
+        "extinctions": {
+          "herbivoreDay": null,
+          "predatorDay": null
+        },
+        "flows": {
+          "births": 5477,
+          "deaths": 4766,
+          "hunts": 2006,
+          "forageGrowth": 653469.631,
+          "forageClimateLoss": 23847.456,
+          "forageConsumed": 662229.658,
+          "forageReproduction": 65376
+        },
+        "timing": {
+          "medianMs": 3.86,
+          "p95Ms": 6.35
+        }
+      },
+      {
+        "seed": 2026,
+        "dimensions": [
+          144,
+          72
+        ],
+        "checkpoints": [
+          {
+            "day": 1,
+            "herb": 3856,
+            "pred": 148,
+            "biomass": 317647,
+            "land": 5934,
+            "occupied": 1928,
+            "predOccupied": 148,
+            "meanHerbDensity": 0.6498,
+            "maxHerb": 2,
+            "maxPred": 1,
+            "glyphTargets": 2076,
+            "maxGlyphs": 2
+          },
+          {
+            "day": 49,
+            "herb": 2667,
+            "pred": 128,
+            "biomass": 250325.01,
+            "land": 5934,
+            "occupied": 2189,
+            "predOccupied": 126,
+            "meanHerbDensity": 0.4494,
+            "maxHerb": 4,
+            "maxPred": 2,
+            "glyphTargets": 2315,
+            "maxGlyphs": 2,
+            "migrations": {
+              "herbivores": 28752,
+              "predators": 2649
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 241,
+            "herb": 898,
+            "pred": 27,
+            "biomass": 273142.022,
+            "land": 5934,
+            "occupied": 831,
+            "predOccupied": 27,
+            "meanHerbDensity": 0.1513,
+            "maxHerb": 4,
+            "maxPred": 1,
+            "glyphTargets": 858,
+            "maxGlyphs": 2,
+            "migrations": {
+              "herbivores": 98166,
+              "predators": 7194
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          },
+          {
+            "day": 481,
+            "herb": 1491,
+            "pred": 4,
+            "biomass": 279094.609,
+            "land": 5934,
+            "occupied": 1263,
+            "predOccupied": 4,
+            "meanHerbDensity": 0.2513,
+            "maxHerb": 4,
+            "maxPred": 1,
+            "glyphTargets": 1267,
+            "maxGlyphs": 2,
+            "migrations": {
+              "herbivores": 140884,
+              "predators": 8119
+            },
+            "extinctions": {
+              "herbivoreDay": null,
+              "predatorDay": null
+            }
+          }
+        ],
+        "peakHerb": 4585,
+        "peakPred": 148,
+        "migrations": {
+          "herbivores": 140884,
+          "predators": 8119
+        },
+        "extinctions": {
+          "herbivoreDay": null,
+          "predatorDay": null
+        },
+        "flows": {
+          "births": 5446,
+          "deaths": 5566,
+          "hunts": 2389,
+          "forageGrowth": 746731.188,
+          "forageClimateLoss": 39820.887,
+          "forageConsumed": 680470.692,
+          "forageReproduction": 64992
+        },
+        "timing": {
+          "medianMs": 4.7,
+          "p95Ms": 7.59
+        }
+      }
+    ]
+  }
+}

@@ -89,6 +89,7 @@
       if(!lower&&land>=18&&hash(x,y,seed+97)>.91){c.t="water";c.waterKind="lake";c.biome="Lac";c.vegetation=0;c.trees=0;}
     }
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=map[y][x];if(c.t!=="water"&&!c.waterway&&hash(x,y,seed+67)<.004)c.t="ruin";}
+    for(const row of map)for(const c of row)if(!habitable(c)){c.fauna=0;c.predators=0;}
     return map;
   }
   function migrate(map, seed) {
@@ -112,20 +113,72 @@
     else if (roll < .12) type = "Brouillard";
     return { type, season: s.name, year: s.year, temperature: Math.round(clamp(temp, 0, 1) * 34 - 8) };
   }
-  // Simulation journalière de l'écosystème. Les populations sont stockées par cellule ;
-  // les déplacements sont appliqués en fin de journée pour éviter les effets d'ordre.
+  const habitable = c => c && !["water", "rock", "ruin"].includes(c.t);
+  // Arrondi stochastique reproductible, coût indépendant de la taille du troupeau.
+  const sample = (expected, x, y, seed) => Math.floor(expected) + (hash(x,y,seed) < expected % 1 ? 1 : 0);
+  function climateQuality(c, temp) {
+    return clamp(c.moisture/.25,.05,1)*clamp((temp+12)/12,.1,1)*clamp((45-temp)/15,.2,1);
+  }
+  // Une seule étape par espèce : les arrivants ne repartent pas le même jour.
+  // Longitude circulaire, latitude bornée, voisins par un bord commun uniquement.
+  function migrateWildlife(map, day, seed, kind, climate) {
+    const h=map.length,w=map[0].length,n=w*h;
+    const predator=kind==="predators";
+    const delta=new Float64Array(n),foodDelta=predator?new Float64Array(n):null,quality=climate||new Float64Array(n);
+    if(!climate)for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const c=map[y][x];
+      if(habitable(c))quality[y*w+x]=climateQuality(c,weatherAt(c,day,seed+x*31+y*17).temperature);
+    }
+    const score=(c,i)=>quality[i]*(predator?c.fauna/(c.predators+.5):c.vegetation/(c.fauna+1));
+    let moved=0;
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const c=map[y][x],i=y*w+x,count=c[kind]||0;
+      if(!habitable(c)||!count)continue;
+      const here=score(c,i);
+      let best=-1,bestScore=here*1.1+.2;
+      // Varier les égalités sans favoriser systématiquement l'est ou l'ouest.
+      const directions=[[1,0],[-1,0],[0,1],[0,-1]],offset=Math.floor(hash(x,y,seed+day*41)*4);
+      for(let k=0;k<4;k++){
+        const [dx,dy]=directions[(k+offset)%4],nx=(x+dx+w)%w,ny=y+dy;
+        if(ny<0||ny>=h)continue;
+        const j=ny*w+nx,d=map[ny][nx];
+        if(j===i||!habitable(d))continue;
+        const value=score(d,j);
+        if(value>bestScore){best=j;bestScore=value;}
+      }
+      if(best<0)continue;
+      const pressure=predator?1-clamp(c.fauna/(count*3),0,1):1-clamp(here/12,0,1);
+      const amount=Math.min(count,sample(count*(.15+.45*pressure),x,y,seed+day*(predator?37:31)));
+      if(!amount)continue;
+      delta[i]-=amount;delta[best]+=amount;moved+=amount;
+      if(predator){const food=(c.predatorFood??count*12)*amount/count;foodDelta[i]-=food;foodDelta[best]+=food;}
+    }
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const c=map[y][x],i=y*w+x;
+      if(predator)c.predatorFood=Math.max(0,(c.predatorFood??(c.predators||0)*12)+foodDelta[i]);
+      c[kind]=(c[kind]||0)+delta[i];
+    }
+    return moved;
+  }
+  function populationTotals(map) {
+    let herbivores=0,predators=0,trees=0,vegetated=0;
+    for(const row of map)for(const c of row){herbivores+=c.fauna||0;predators+=c.predators||0;trees+=c.trees||0;if(c.vegetation>0)vegetated++;}
+    // Alias conservés pour l'interface et les anciennes sauvegardes.
+    return {herbivores,predators,vegetated,herb:herbivores,pred:predators,trees};
+  }
+  // Ressources puis dispersion puis démographie : le départ reste possible avant la famine.
   function advance(map, day, px, py, seed) {
-    const h=map.length,w=map[0].length,events=[],moves=Array.from({length:h},()=>Array.from({length:w},()=>({fauna:0,predators:0})));
+    const h=map.length,w=map[0].length,events=[],climate=new Float64Array(w*h);
     const seasonName=season(day).name;
     const seasonGrowth={"Printemps":1.45,"Été":.82,"Automne":.32,"Hiver":.06}[seasonName];
-    const wrap=x=>(x+w)%w;
-    let herbivores=0,predatorCount=0,green=0;
+    let forageGrowth=0,forageClimateLoss=0,forageConsumed=0,forageReproduction=0;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-      const c=map[y][x]; if(c.t==="water"||c.t==="rock"||c.t==="ruin")continue;
+      const c=map[y][x];if(!habitable(c))continue;
+      const previousVegetation=c.vegetation;
       const local=weatherAt(c,day,seed+x*31+y*17),temp=local.temperature;
       const wet=["Pluie","Orage","Averses","Neige"].includes(local.type);
-      if(wet)c.moisture=clamp(c.moisture+.025,0,1);
-      else c.moisture=clamp(c.moisture-(temp>23?.018:.006),0,1);
+      c.moisture=clamp(c.moisture+(wet?.025:-(temp>23?.018:.006)),0,1);
+      climate[y*w+x]=climateQuality(c,temp);
       const forest=["Forêt tempérée","Taïga","Marécage"].includes(c.biome);
       const grass=["Prairie","Savane","Toundra"].includes(c.biome);
       if(forest){
@@ -136,52 +189,51 @@
         if(c.trees>0&&c.trees<14&&c.vegetation>65&&c.moisture>.38&&hash(x,y,seed+day+5)>.91)c.trees++;
         if(c.trees>0&&c.vegetation>24)c.t="forest";else if(c.t==="forest")c.t="grass";
       }else if(grass){
-        const climateFactor=c.moisture<.12?-.7:1;
-        c.vegetation=clamp(c.vegetation+seasonGrowth*climateFactor*(c.moisture+.15),0,85);
+        c.vegetation=clamp(c.vegetation+seasonGrowth*(c.moisture<.12?-.7:1)*(c.moisture+.15),0,85);
       }else if(c.biome==="Désert")c.vegetation=clamp(c.vegetation+(wet?.08:-.015),0,15);
-      if(c.vegetation>0)green++;
-      let herb=Math.max(0,c.fauna||0),pred=Math.max(0,c.predators||0);
-      // Herbivores eat vegetation, reproduce only when food and climate permit.
-      if(herb>0){
-        const consumed=Math.min(c.vegetation,herb*(forest?.65:1.05));
-        c.vegetation=Math.max(0,c.vegetation-consumed);
-        const stress=c.vegetation<8||c.moisture<.08||temp< -8;
-        if(stress&&hash(x,y,seed+day*7)<.22)herb--;
-        else if(!stress&&c.vegetation>48&&c.moisture>.25&&herb<7&&hash(x,y,seed+day*11)>.965)herb++;
-      }else if(c.vegetation>58&&c.moisture>.3&&temp>0&&hash(x,y,seed+day*13)>.992)herb=1;
-      // Predators consume local prey and disperse toward neighboring prey-rich cells.
-      if(pred>0&&herb>0&&hash(x,y,seed+day*17)>.35){herb--;if(hash(x,y,seed+day*19)>.82&&pred<3)pred++;}
-      else if(pred>0&&hash(x,y,seed+day*23)>.94)pred--;
-      if(pred===0&&herb>=3&&hash(x,y,seed+day*29)>.997)pred=1;
-      c.fauna=herb;c.predators=pred;herbivores+=herb;predatorCount+=pred;
-      // Migration: a small fraction of animals moves one tile toward better habitat.
-      for(const kind of ["fauna","predators"]){
-        const count=kind==="fauna"?herb:pred;
-        if(!count||hash(x,y,seed+day*(kind==="fauna"?31:37))<.88)continue;
-        let best=null,bestScore=-Infinity;
-        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dx||dy){
-          const ny=y+dy,nx=wrap(x+dx);if(ny<0||ny>=h)continue;
-          const n=map[ny][nx];if(n.t==="water"||n.t==="rock"||n.t==="ruin")continue;
-          const score=(kind==="fauna"?n.vegetation*.65+n.moisture*18+n.fauna*2:n.fauna*12+(n.biome==="Forêt tempérée"?4:0))+hash(nx,ny,seed+day+43);
-          if(score>bestScore){bestScore=score;best={x:nx,y:ny};}
-        }
-        if(best){moves[y][x][kind]--;moves[best.y][best.x][kind]++;}
-      }
+      forageGrowth+=Math.max(0,c.vegetation-previousVegetation);
+      forageClimateLoss+=Math.max(0,previousVegetation-c.vegetation);
     }
+    const migrations={herbivores:migrateWildlife(map,day,seed,"fauna",climate),predators:migrateWildlife(map,day,seed,"predators",climate)};
+    let births=0,hunts=0,deaths=0,herbivoreBirths=0,predatorBirths=0,herbivoreDeaths=0,predatorDeaths=0;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-      const c=map[y][x],m=moves[y][x];
-      c.fauna=clamp((c.fauna||0)+m.fauna,0,12);
-      c.predators=clamp((c.predators||0)+m.predators,0,5);
+      const c=map[y][x];if(!habitable(c))continue;
+      let herb=c.fauna||0,pred=c.predators||0;
+      const quality=climate[y*w+x];
+      const forest=["Forêt tempérée","Taïga","Marécage"].includes(c.biome);
+      const demand=herb*(forest?.65:1.05),fed=demand?Math.min(1,c.vegetation/demand):0;
+      forageConsumed+=Math.min(c.vegetation,demand);
+      c.vegetation=Math.max(0,c.vegetation-demand);
+      const lost=Math.min(herb,sample(herb*(.002+.22*(1-fed*quality)),x,y,seed+day*7));
+      herb-=lost;deaths+=lost;herbivoreDeaths+=lost;
+      // Ne pas convertir un simple stock initial de verdure en naissances gratuites.
+      // Conserver six jours de fourrage ; chaque naissance coûte douze unités.
+      const fertility=seasonName==="Printemps"?.02:seasonName==="Été"?.012:seasonName==="Automne"?.003:0;
+      const surplus=Math.max(0,c.vegetation-demand*6);
+      const born=Math.min(Math.floor(surplus/12),sample(herb*fertility*fed*quality*clamp(surplus/((herb+1)*12),0,1),x,y,seed+day*11));
+      c.vegetation-=born*12;forageReproduction+=born*12;
+      herb+=born;births+=born;herbivoreBirths+=born;
+      if(pred){
+        // Un repas nourrit plusieurs jours ; aucun décès sur un simple échec de chasse.
+        const caught=Math.min(herb,sample(pred*.32*herb/(herb+2),x,y,seed+day*17));
+        herb-=caught;hunts+=caught;
+        let food=Math.min(pred*24,(c.predatorFood??pred*12)+caught*12)-pred;
+        const dead=Math.min(pred,sample(pred*(food<0?.10:.001),x,y,seed+day*23));
+        food=Math.max(0,food)*(pred-dead)/pred;pred-=dead;deaths+=dead;predatorDeaths+=dead;
+        const cubs=pred&&food/pred>=12?sample(pred*.012*quality*clamp(herb/((pred+1)*3),0,1),x,y,seed+day*19):0;
+        pred+=cubs;births+=cubs;predatorBirths+=cubs;c.predatorFood=food;
+      }else c.predatorFood=0;
+      c.fauna=herb;c.predators=pred;
     }
-    // Events are sparse and grounded in actual changes, not random narrative filler.
+    const totals=populationTotals(map);
     if(day%4===0){
       let drought=0,abundance=0;
-      for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=map[y][x];if(c.t!=="water"&&c.moisture<.12)drought++;if(c.fauna>=5)abundance++;}
+      for(const row of map)for(const c of row){if(c.t!=="water"&&c.moisture<.12)drought++;if(c.fauna>=5)abundance++;}
       if(drought>w*h*.08)events.push("Sécheresse : plusieurs régions manquent d'eau.");
       if(abundance>8)events.push("Des troupeaux prospèrent dans les régions fertiles.");
-      if(herbivores===0)events.push("La faune herbivore a disparu de cette planète.");
+      if(totals.herbivores===0)events.push("La faune herbivore a disparu de cette planète.");
     }
-    return {events,herbivores,predators:predatorCount,vegetated:green};
+    return {...totals,events,migrations,births,hunts,deaths,herbivoreBirths,predatorBirths,herbivoreDeaths,predatorDeaths,forageGrowth,forageClimateLoss,forageConsumed,forageReproduction};
   }
   // Découpage déterministe d'un territoire en 25 sous-zones de paysage.
   function detailAt(tile,x,y,seed){
@@ -196,22 +248,72 @@
       if(g==='T'&&detail>.72)g='t';else if(g==='t'&&detail>.77)g='.';else if(g==='.'&&detail<.07)g='"';else if(g==='^'&&detail>.85)g=':';
       if(g==='T')trees++;if(g==='^')rocks++;if(g==='~'||g===';')wetlands++;if(g==='.')clearings++;row.push(g);
     }out.push(row)}
-    if(!water&&!mountain&&tile.fauna>0){const n=Math.min(7,Math.ceil(tile.fauna/2));for(let i=0;i<n;i++){const gx=Math.floor(hash(x+i*3,y+i*5,seed+401)*15),gy=Math.floor(hash(x+i*7,y+i*2,seed+409)*15);if(out[gy][gx]!== '~'&&out[gy][gx]!=='^')out[gy][gx]='a'}}
-    // Seed a small shared habitat when predators occur: both species must be observable.
-    if(!water&&!mountain&&tile.predators>0){
-      let herb=out.flat().filter(g=>g==='a').length;
-      for(let k=0;k<Math.max(0,3-herb);k++){
-        for(let attempt=0;attempt<30;attempt++){
-          const gx=Math.floor(hash(x+k*31+attempt,y+k*17,seed+503)*15),gy=Math.floor(hash(x+k*11,y+attempt*29,seed+509)*15);
-          if(out[gy][gx]!=='~'&&out[gy][gx]!=='^'&&out[gy][gx]!=='a'){out[gy][gx]='a';break}
-        }
-      }
-      for(let attempt=0;attempt<30;attempt++){
-        const gx=Math.floor(hash(x+11+attempt,y+17,seed+419)*15),gy=Math.floor(hash(x+19,y+3+attempt,seed+421)*15);
-        if(out[gy][gx]!=='~'&&out[gy][gx]!=='^'&&out[gy][gx]!=='a'){out[gy][gx]='W';break}
-      }
-    }
+    // Quelques glyphes de groupes ; les effectifs réels restent dans le territoire.
+    const data={base:out.flat()};
+    syncDetail(data,tile,x,y,seed);
+    for(let gy=0;gy<15;gy++)for(let gx=0;gx<15;gx++)out[gy][gx]=data[gy*15+gx]??data.base[gy*15+gx];
     return {tiles:out,trees,rocks,clearings,wetlands,subzoneKm:250/15};
   }
-    window.FrontieresEco = { generate, migrate, season, weatherAt, advance, detailAt };
+  // Les sous-zones sont une projection persistante des effectifs du territoire.
+  // Le budget de glyphes sert la lisibilité, sans limiter les effectifs simulés.
+  function detailPopulation(tile) {
+    if(!habitable(tile))return {herb:0,pred:0};
+    return {herb:Math.min(8,Math.ceil((tile.fauna||0)/5)),pred:Math.min(4,Math.ceil((tile.predators||0)/2))};
+  }
+  const groundAt = (data,i) => data.ground?.[i]??data.base[i];
+  function syncDetail(data,tile,x,y,seed) {
+    const signature=["groups-v2",tile.t,tile.fauna||0,tile.predators||0].join(",");
+    if(data.wildlifeSignature===signature)return data;
+    const glyph=i=>data[i]??data.base[i];
+    // Retirer les animaux décoratifs de l'ancien fond sans perdre les récoltes/exploration.
+    for(let i=0;i<225;i++)if(data.base[i]==="a"||data.base[i]==="W"){
+      if(data[i]===undefined)data[i]=data.base[i];data.base[i]=".";
+    }
+    if(!data.ground)data.ground={};
+    const species=[["predators","W"],["fauna","a"]],missing=[];
+    // Libérer les cases avant de placer les arrivants de l'autre espèce.
+    for(const [kind,mark] of species){
+      const positions=[];for(let i=0;i<225;i++)if(glyph(i)===mark)positions.push(i);
+      const target=detailPopulation(tile)[kind==="fauna"?"herb":"pred"];
+      while(positions.length>target){const i=positions.pop();data[i]=groundAt(data,i);delete data.ground[i];}
+      missing.push(target-positions.length);
+    }
+    for(let k=0;k<species.length;k++){
+      const mark=species[k][1];let needed=missing[k];
+      const offset=Math.floor(hash(x,y,seed+401)*225);
+      for(let j=0;j<225&&needed>0;j++){
+        const i=(j*97+offset)%225,g=glyph(i);
+        if(g!=="~"&&g!=="^"&&g!=="a"&&g!=="W"){data.ground[i]=g;data[i]=mark;needed--;}
+      }
+    }
+    // Les réserves alimentaires sont désormais stockées au niveau du territoire.
+    delete data.hunger;data.wildlifeSignature=signature;
+    return data;
+  }
+  // Animation sans naissances, morts ou migrations supplémentaires sur minuterie.
+  function animateDetail(data,day,seed) {
+    const old=Array.from({length:225},(_,i)=>data[i]??data.base[i]);
+    const next=old.slice(),occupied=new Set();let changes=0;
+    for(const mark of ["W","a"])for(let i=0;i<225;i++){
+      if(old[i]!==mark||next[i]!==mark||occupied.has(i))continue;
+      const x=i%15,y=Math.floor(i/15),options=[];
+      let prey=-1,distance=Infinity;
+      if(mark==="W")for(let j=0;j<225;j++)if(next[j]==="a"){
+        const d=Math.abs(j%15-x)+Math.abs(Math.floor(j/15)-y);if(d<distance){distance=d;prey=j;}
+      }
+      for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const xx=x+dx,yy=y+dy;if(xx<0||xx>=15||yy<0||yy>=15)continue;
+        const j=yy*15+xx,g=next[j];
+        if(g!=="~"&&g!=="^"&&g!=="a"&&g!=="W"&&!occupied.has(j))options.push(j);
+      }
+      if(!options.length)continue;
+      const score=j=>prey>=0?Math.abs(j%15-prey%15)+Math.abs(Math.floor(j/15)-Math.floor(prey/15)):hash(j,day,seed);
+      options.sort((a,b)=>score(a)-score(b));
+      const dest=options[0];next[i]=groundAt(data,i);delete data.ground[i];data.ground[dest]=next[dest];next[dest]=mark;occupied.add(dest);changes++;
+    }
+    for(let i=0;i<225;i++)if(next[i]!==old[i])data[i]=next[i];
+    return changes;
+  }
+  window.FrontieresEco = { generate, migrate, season, weatherAt, advance, detailAt, migrateWildlife, populationTotals, detailPopulation, syncDetail, animateDetail };
+
 })();

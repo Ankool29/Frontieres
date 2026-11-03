@@ -1,0 +1,18 @@
+name: Vérifier la simulation
+on:
+  pull_request:
+    branches: [development, main]
+  push:
+    branches: [development, 'feat/**']
+permissions:
+  contents: read
+jobs:
+  ecology:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm run check
+      - run: npm test

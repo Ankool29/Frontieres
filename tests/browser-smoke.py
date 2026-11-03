@@ -19,15 +19,18 @@ with sync_playwright() as playwright:
         for name in ['index.html', 'exploration.html']:
             context = browser.new_context(viewport={'width':393, 'height':851},
                                           is_mobile=True, has_touch=True)
+            context.add_init_script("Math.random = () => 28.5 / 999999;")
             page = context.new_page()
+            cdp = context.new_cdp_session(page)
+            cdp.send('Emulation.setCPUThrottlingRate', {'rate':4})
             errors = []
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(f'http://127.0.0.1:{server.server_port}/{name}', timeout=30000)
-            page.wait_for_selector('#smoke-result', timeout=30000)
+            page.wait_for_selector('#smoke-result', timeout=60000)
             result = json.loads(page.locator('#smoke-result').text_content())
             assert result['ok'], result
             assert not errors, errors
-            print(f"{name}: {len(result['results'])} vérifications navigateur réussies")
+            print(f"{name}: {len(result['results'])} vérifications navigateur réussies (CPU ×4) ; {result['metrics']}")
             context.close()
     finally:
         browser.close()

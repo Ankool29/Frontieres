@@ -123,13 +123,13 @@ test('sous-zones : réconciliation sans perdre récoltes, exploration ou terrain
   const data={base:Array(225).fill('.'),seen:[1,2],3:':',4:'a',5:'W',hunger:{5:8}};
   const c=tile({fauna:7,predators:2});
   eco.syncDetail(data,c,0,0,29);
-  assert.deepEqual(counts(data),{herb:7,pred:2});assert.deepEqual(data.seen,[1,2]);assert.equal(data.hunger,undefined);
+  assert.deepEqual(counts(data),{herb:2,pred:1});assert.deepEqual(data.seen,[1,2]);assert.equal(data.hunger,undefined);
   for(let i=0;i<20;i++)eco.animateDetail(data,i,29);
-  assert.deepEqual(counts(data),{herb:7,pred:2});
+  assert.deepEqual(counts(data),{herb:2,pred:1});
   c.fauna=0;c.predators=0;eco.syncDetail(data,c,0,0,29);
   assert.deepEqual(counts(data),{herb:0,pred:0});assert.equal(data[3]??data.base[3],':');
   const reloaded=clone(data);c.fauna=3;eco.syncDetail(reloaded,c,0,0,29);
-  assert.equal(counts(reloaded).herb,3);
+  assert.equal(counts(reloaded).herb,1);
 });
 
 test('ancien fond avec fausse proie et territoire surpeuplé : aucun animal créé par le rendu', () => {
@@ -137,18 +137,92 @@ test('ancien fond avec fausse proie et territoire surpeuplé : aucun animal cré
   eco.syncDetail(data,tile({predators:1}),0,0,1);
   assert.deepEqual(counts(data),{herb:0,pred:1});
   const c=tile({fauna:500,predators:10});eco.syncDetail(data,c,0,0,1);
-  assert.ok(counts(data).herb<=215);assert.equal(c.fauna,500);assert.equal(counts(data).pred,10);
+  assert.deepEqual(counts(data),{herb:8,pred:4});assert.equal(c.fauna,500);assert.equal(c.predators,10);
 });
 
-test('trois planètes pendant dix années : pas de croissance illimitée ni extinction précoce systématique', () => {
+test('scénarios déterministes à un, cinq et dix ans, ressources, densités et extinctions', () => {
+  const {simulate}=require('../scripts/scenarios.cjs');
   for(const seed of [1,29,2026]){
-    const map=eco.generate(144,72,seed),initial=total(map);
-    let peak=initial.herb;
-    for(let day=2;day<=481;day++){
-      const result=eco.advance(map,day,0,0,seed);peak=Math.max(peak,result.herb);
-      if(day===97)assert.ok(result.pred>initial.pred*.3,`graine ${seed} : prédateurs après deux ans`);
-      assert.ok(result.herb<initial.herb*3,`graine ${seed} : prolifération`);
+    const first=simulate(eco,seed,{width:48,height:24});
+    assert.deepEqual(first,simulate(load(),seed,{width:48,height:24}));
+    assert.deepEqual(first.checkpoints.map(c=>c.day),[1,49,241,481]);
+    const initial=first.checkpoints[0];
+    for(const c of first.checkpoints){
+      assert.ok(c.herb>=0&&c.pred>=0&&c.biomass>=0);
+      assert.ok(c.biomass<=c.land*100);
+      assert.ok(c.maxGlyphs<=12);
+      assert.ok(c.occupied<=c.land&&c.predOccupied<=c.land);
+      assert.ok(Number.isInteger(c.maxHerb)&&Number.isInteger(c.maxPred));
     }
-    assert.ok(total(map).herb<peak);
+    assert.ok(first.peakHerb<initial.herb*2,'croissance initiale contenue par les ressources');
+    assert.ok(first.migrations.herbivores>0&&first.migrations.predators>0);
+    if(first.extinctions.predatorDay!==null)assert.equal(first.checkpoints.at(-1).pred,0);
+    if(first.extinctions.herbivoreDay!==null)assert.equal(first.checkpoints.at(-1).herb,0);
+  }
+});
+
+test('le bilan de biomasse inclut repousse, consommation et coût des naissances', () => {
+  const map=eco.generate(24,12,29);
+  const biomass=()=>map.flat().filter(c=>!['water','rock','ruin'].includes(c.t)).reduce((a,c)=>a+c.vegetation,0);
+  let reproduction=0,consumed=0;
+  for(let day=2;day<=97;day++){
+    const before=biomass(),r=eco.advance(map,day,0,0,29);
+    assert.ok(Math.abs(biomass()-(before+r.forageGrowth-r.forageClimateLoss-r.forageConsumed-r.forageReproduction))<1e-6);
+    assert.equal(r.births,r.herbivoreBirths+r.predatorBirths);
+    assert.equal(r.deaths,r.herbivoreDeaths+r.predatorDeaths);
+    reproduction+=r.forageReproduction;consumed+=r.forageConsumed;
+  }
+  assert.ok(reproduction>0&&consumed>reproduction);
+});
+
+test('un troupeau nourri mais sans surplus ne se reproduit pas', () => {
+  for(let seed=1;seed<=80;seed++){
+    const map=[[tile({fauna:10,vegetation:75})]];
+    const r=eco.advance(map,2,0,0,seed);
+    assert.equal(r.herbivoreBirths,0);assert.equal(r.forageReproduction,0);
+    assert.ok(r.forageConsumed>0);
+  }
+});
+
+test('une ancienne grille individuelle devient des groupes sans toucher aux effectifs ni au terrain', () => {
+  const c=tile({fauna:60,predators:6});
+  const data={base:Array(225).fill('.'),seen:[1,3,4],wildlifeSignature:'grass,60,6',ground:{}};
+  for(let i=0;i<60;i++){data[i]='a';data.ground[i]=i===42?':':'.';}
+  for(let i=60;i<66;i++)data[i]='W';
+  eco.syncDetail(data,c,0,0,29);
+  assert.deepEqual(counts(data),{herb:8,pred:3});assert.equal(c.fauna,60);assert.equal(c.predators,6);
+  assert.equal(data[42],':');assert.deepEqual(data.seen,[1,3,4]);
+  const saved=clone(data);eco.syncDetail(saved,c,0,0,29);assert.deepEqual(saved,data);
+  for(let day=0;day<50;day++)eco.animateDetail(saved,day,29);
+  assert.deepEqual(counts(saved),{herb:8,pred:3});
+});
+
+test('les plafonds de glyphes ne limitent jamais les populations ni leurs migrations', () => {
+  const c=tile({fauna:5000,predators:1000});
+  const data={base:Array(225).fill('.')};eco.syncDetail(data,c,0,0,1);
+  const before=clone(c);
+  assert.deepEqual(counts(data),{herb:8,pred:4});
+  for(let day=0;day<10;day++)eco.animateDetail(data,day,1);
+  assert.deepEqual(c,before);
+  const destination=tile({vegetation:85}),map=[[c,destination]];
+  c.vegetation=0;eco.migrateWildlife(map,2,1,'fauna');
+  assert.ok(destination.fauna>100);assert.equal(total(map).herb,5000);
+});
+
+test('carte mobile complète : scénarios à 1/5/10 ans comparés aux pics de la PR initiale', () => {
+  const {simulate}=require('../scripts/scenarios.cjs');
+  const baseline=require('../docs/metrics/android-review.json').before.scenarios;
+  for(const previous of baseline){
+    const result=simulate(eco,previous.seed);
+    assert.equal(result.checkpoints[0].herb,previous.checkpoints[0].herb);
+    assert.ok(result.peakHerb<previous.peakHerb*.8,'réduction du pic sans changer le peuplement initial');
+    assert.ok(result.checkpoints[1].pred>previous.checkpoints[0].pred*.5,'survie des prédateurs à un an');
+    const first=result.checkpoints[0],last=result.checkpoints.at(-1);
+    assert.equal(last.herb+last.pred,first.herb+first.pred+result.flows.births-result.flows.deaths-result.flows.hunts);
+    assert.ok(Math.abs(last.biomass-(first.biomass+result.flows.forageGrowth-result.flows.forageClimateLoss-result.flows.forageConsumed-result.flows.forageReproduction))<.02);
+    for(const c of result.checkpoints){
+      assert.ok(c.maxGlyphs<=12&&c.maxHerb>=0&&c.maxPred>=0);
+      assert.ok(c.biomass>=0&&c.occupied<=c.land);
+    }
   }
 });

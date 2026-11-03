@@ -7,7 +7,7 @@ for(const path of ['index.html','exploration.html']){
   const inline=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
   if(inline.length!==1)throw Error(`${path}: script principal manquant`);
   new Function(inline[0]);scripts.push(inline[0]);
-  if(!html.includes('ecosystem.js?v=20261102-ecology08'))throw Error(`${path}: version moteur incohérente`);
+  if(!html.includes('ecosystem.js?v=20261102-herds09'))throw Error(`${path}: version moteur incohérente`);
 }
 // La page de test ouvre directement l'exploration ; le reste doit rester identique.
 if(scripts[1].replace('mapZoom=2;mapCenterX=S.x;mapCenterY=S.y;render();start();','start();')!==scripts[0]){

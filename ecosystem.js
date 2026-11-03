@@ -171,8 +171,10 @@
     const h=map.length,w=map[0].length,events=[],climate=new Float64Array(w*h);
     const seasonName=season(day).name;
     const seasonGrowth={"Printemps":1.45,"Été":.82,"Automne":.32,"Hiver":.06}[seasonName];
+    let forageGrowth=0,forageClimateLoss=0,forageConsumed=0,forageReproduction=0;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
       const c=map[y][x];if(!habitable(c))continue;
+      const previousVegetation=c.vegetation;
       const local=weatherAt(c,day,seed+x*31+y*17),temp=local.temperature;
       const wet=["Pluie","Orage","Averses","Neige"].includes(local.type);
       c.moisture=clamp(c.moisture+(wet?.025:-(temp>23?.018:.006)),0,1);
@@ -189,31 +191,37 @@
       }else if(grass){
         c.vegetation=clamp(c.vegetation+seasonGrowth*(c.moisture<.12?-.7:1)*(c.moisture+.15),0,85);
       }else if(c.biome==="Désert")c.vegetation=clamp(c.vegetation+(wet?.08:-.015),0,15);
+      forageGrowth+=Math.max(0,c.vegetation-previousVegetation);
+      forageClimateLoss+=Math.max(0,previousVegetation-c.vegetation);
     }
     const migrations={herbivores:migrateWildlife(map,day,seed,"fauna",climate),predators:migrateWildlife(map,day,seed,"predators",climate)};
-    let births=0,hunts=0,deaths=0;
+    let births=0,hunts=0,deaths=0,herbivoreBirths=0,predatorBirths=0,herbivoreDeaths=0,predatorDeaths=0;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
       const c=map[y][x];if(!habitable(c))continue;
       let herb=c.fauna||0,pred=c.predators||0;
       const quality=climate[y*w+x];
       const forest=["Forêt tempérée","Taïga","Marécage"].includes(c.biome);
       const demand=herb*(forest?.65:1.05),fed=demand?Math.min(1,c.vegetation/demand):0;
+      forageConsumed+=Math.min(c.vegetation,demand);
       c.vegetation=Math.max(0,c.vegetation-demand);
       const lost=Math.min(herb,sample(herb*(.002+.22*(1-fed*quality)),x,y,seed+day*7));
-      herb-=lost;deaths+=lost;
-      // La fertilité diminue avec la nourriture disponible par individu et la saison.
-      const fertility=seasonName==="Printemps"?.045:seasonName==="Été"?.025:seasonName==="Automne"?.008:0;
-      const born=sample(herb*fertility*fed*quality*clamp(c.vegetation/((herb+1)*12),0,1),x,y,seed+day*11);
-      herb+=born;births+=born;
+      herb-=lost;deaths+=lost;herbivoreDeaths+=lost;
+      // Ne pas convertir un simple stock initial de verdure en naissances gratuites.
+      // Conserver six jours de fourrage ; chaque naissance coûte douze unités.
+      const fertility=seasonName==="Printemps"?.02:seasonName==="Été"?.012:seasonName==="Automne"?.003:0;
+      const surplus=Math.max(0,c.vegetation-demand*6);
+      const born=Math.min(Math.floor(surplus/12),sample(herb*fertility*fed*quality*clamp(surplus/((herb+1)*12),0,1),x,y,seed+day*11));
+      c.vegetation-=born*12;forageReproduction+=born*12;
+      herb+=born;births+=born;herbivoreBirths+=born;
       if(pred){
         // Un repas nourrit plusieurs jours ; aucun décès sur un simple échec de chasse.
         const caught=Math.min(herb,sample(pred*.32*herb/(herb+2),x,y,seed+day*17));
         herb-=caught;hunts+=caught;
         let food=Math.min(pred*24,(c.predatorFood??pred*12)+caught*12)-pred;
         const dead=Math.min(pred,sample(pred*(food<0?.10:.001),x,y,seed+day*23));
-        food=Math.max(0,food)*(pred-dead)/pred;pred-=dead;deaths+=dead;
+        food=Math.max(0,food)*(pred-dead)/pred;pred-=dead;deaths+=dead;predatorDeaths+=dead;
         const cubs=pred&&food/pred>=12?sample(pred*.012*quality*clamp(herb/((pred+1)*3),0,1),x,y,seed+day*19):0;
-        pred+=cubs;births+=cubs;c.predatorFood=food;
+        pred+=cubs;births+=cubs;predatorBirths+=cubs;c.predatorFood=food;
       }else c.predatorFood=0;
       c.fauna=herb;c.predators=pred;
     }
@@ -225,7 +233,7 @@
       if(abundance>8)events.push("Des troupeaux prospèrent dans les régions fertiles.");
       if(totals.herbivores===0)events.push("La faune herbivore a disparu de cette planète.");
     }
-    return {...totals,events,migrations,births,hunts,deaths};
+    return {...totals,events,migrations,births,hunts,deaths,herbivoreBirths,predatorBirths,herbivoreDeaths,predatorDeaths,forageGrowth,forageClimateLoss,forageConsumed,forageReproduction};
   }
   // Découpage déterministe d'un territoire en 25 sous-zones de paysage.
   function detailAt(tile,x,y,seed){
@@ -240,17 +248,21 @@
       if(g==='T'&&detail>.72)g='t';else if(g==='t'&&detail>.77)g='.';else if(g==='.'&&detail<.07)g='"';else if(g==='^'&&detail>.85)g=':';
       if(g==='T')trees++;if(g==='^')rocks++;if(g==='~'||g===';')wetlands++;if(g==='.')clearings++;row.push(g);
     }out.push(row)}
-    // Un glyphe par individu ; aucune proie fictive autour d'un prédateur.
+    // Quelques glyphes de groupes ; les effectifs réels restent dans le territoire.
     const data={base:out.flat()};
     syncDetail(data,tile,x,y,seed);
     for(let gy=0;gy<15;gy++)for(let gx=0;gx<15;gx++)out[gy][gx]=data[gy*15+gx]??data.base[gy*15+gx];
     return {tiles:out,trees,rocks,clearings,wetlands,subzoneKm:250/15};
   }
   // Les sous-zones sont une projection persistante des effectifs du territoire.
-  // La limite de 225 cases est uniquement visuelle, jamais une limite de population.
+  // Le budget de glyphes sert la lisibilité, sans limiter les effectifs simulés.
+  function detailPopulation(tile) {
+    if(!habitable(tile))return {herb:0,pred:0};
+    return {herb:Math.min(8,Math.ceil((tile.fauna||0)/5)),pred:Math.min(4,Math.ceil((tile.predators||0)/2))};
+  }
   const groundAt = (data,i) => data.ground?.[i]??data.base[i];
   function syncDetail(data,tile,x,y,seed) {
-    const signature=[tile.t,tile.fauna||0,tile.predators||0].join(",");
+    const signature=["groups-v2",tile.t,tile.fauna||0,tile.predators||0].join(",");
     if(data.wildlifeSignature===signature)return data;
     const glyph=i=>data[i]??data.base[i];
     // Retirer les animaux décoratifs de l'ancien fond sans perdre les récoltes/exploration.
@@ -262,7 +274,7 @@
     // Libérer les cases avant de placer les arrivants de l'autre espèce.
     for(const [kind,mark] of species){
       const positions=[];for(let i=0;i<225;i++)if(glyph(i)===mark)positions.push(i);
-      const target=habitable(tile)?Math.min(225,tile[kind]||0):0;
+      const target=detailPopulation(tile)[kind==="fauna"?"herb":"pred"];
       while(positions.length>target){const i=positions.pop();data[i]=groundAt(data,i);delete data.ground[i];}
       missing.push(target-positions.length);
     }
@@ -302,6 +314,6 @@
     for(let i=0;i<225;i++)if(next[i]!==old[i])data[i]=next[i];
     return changes;
   }
-  window.FrontieresEco = { generate, migrate, season, weatherAt, advance, detailAt, migrateWildlife, populationTotals, syncDetail, animateDetail };
+  window.FrontieresEco = { generate, migrate, season, weatherAt, advance, detailAt, migrateWildlife, populationTotals, detailPopulation, syncDetail, animateDetail };
 
 })();
